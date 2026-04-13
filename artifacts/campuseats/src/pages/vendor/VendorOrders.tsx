@@ -50,9 +50,9 @@ export default function VendorOrders() {
 
   return (
     <VendorLayout>
-      <div className="px-4 md:px-8 pt-6">
-        <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Orders</h1>
+      <div className="px-4 pt-4">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
           <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">Auto-refreshes</span>
         </div>
 

@@ -11,18 +11,18 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Admin Dashboard</h1>
-        <p className="text-sm text-muted-foreground mb-6">CampusEats system overview</p>
+      <div className="pt-4">
+        <h1 className="text-2xl font-bold text-foreground mb-1">Admin Dashboard</h1>
+        <p className="text-sm text-muted-foreground mb-5">CampusEats system overview</p>
 
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="bg-white rounded-xl border border-border p-4 animate-pulse h-24" />
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             {[
               { label: "Total orders", value: stats?.totalOrders ?? 0, Icon: ShoppingBag, color: "bg-blue-50 text-blue-600" },
               { label: "Orders today", value: stats?.ordersToday ?? 0, Icon: TrendingUp, color: "bg-orange-50 text-primary" },

@@ -34,8 +34,8 @@ export default function Orders() {
 
   return (
     <StudentLayout>
-      <div className="px-4 md:px-8 pt-6 max-w-3xl">
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-6">Your orders</h1>
+      <div className="px-4 pt-4">
+        <h1 className="text-2xl font-bold text-foreground mb-4">Your orders</h1>
 
         {isLoading ? (
           <div className="space-y-3">

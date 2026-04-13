@@ -51,11 +51,11 @@ export default function VendorMenuNew() {
 
   return (
     <VendorLayout>
-      <div className="px-4 md:px-8 pt-6 max-w-2xl">
+      <div className="px-4 pt-4">
         <button onClick={() => navigate("/vendor/menu")} className="flex items-center gap-1.5 text-sm text-muted-foreground mb-4 hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Back to menu
         </button>
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-5">Add menu item</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-5">Add menu item</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {[
