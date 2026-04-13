@@ -10,9 +10,23 @@ dotenv.config();
 
 const app = express();
 
+const configuredOrigins = (process.env.CLIENT_URL ?? "http://localhost:3000")
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const allowedOrigins = new Set(["http://localhost:3000", "http://127.0.0.1:3000", ...configuredOrigins]);
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL ?? "http://localhost:3000"
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.has(origin) || process.env.NODE_ENV !== "production") {
+        callback(null, true);
+        return;
+      }
+
+      callback(new Error("Not allowed by CORS"));
+    }
   })
 );
 app.use(express.json());

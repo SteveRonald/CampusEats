@@ -14,17 +14,25 @@ export default function HomePage() {
   const [popular, setPopular] = useState<MarketplaceItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [stats, setStats] = useState({ totalItems: 0, totalVendors: 0, avgPickupTime: 12 });
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    client.marketplaceFeed(search || undefined, selectedCategory).then((data) => {
-      setItems(data.items);
-      setStats(data.stats);
-    });
+    client
+      .marketplaceFeed(search || undefined, selectedCategory)
+      .then((data) => {
+        setItems(data.items);
+        setStats(data.stats);
+        setError(null);
+      })
+      .catch(() => {
+        setItems([]);
+        setError("Could not load menu items. Check again later.");
+      });
   }, [search, selectedCategory]);
 
   useEffect(() => {
-    client.popularMeals().then(setPopular);
-    client.categories().then(setCategories);
+    client.popularMeals().then(setPopular).catch(() => setPopular([]));
+    client.categories().then(setCategories).catch(() => setCategories([]));
   }, []);
 
   return (
@@ -73,6 +81,12 @@ export default function HomePage() {
       )}
 
       <div className="px-4 py-4">
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
         {!search && !selectedCategory && popular.length > 0 && (
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
