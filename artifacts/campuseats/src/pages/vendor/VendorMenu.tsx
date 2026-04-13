@@ -45,9 +45,9 @@ export default function VendorMenu() {
 
   return (
     <VendorLayout>
-      <div className="px-4 pt-4">
+      <div className="px-4 md:px-8 pt-6">
         <div className="flex items-center justify-between mb-5">
-          <h1 className="text-2xl font-bold text-foreground">Menu</h1>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground">Menu</h1>
           <button
             onClick={() => navigate("/vendor/menu/new")}
             className="flex items-center gap-1.5 bg-primary text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-sm"

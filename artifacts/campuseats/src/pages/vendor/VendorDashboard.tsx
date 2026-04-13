@@ -34,12 +34,12 @@ export default function VendorDashboard() {
 
   return (
     <VendorLayout>
-      <div className="px-4 pt-4">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mb-5">Welcome back, {user?.name?.split(" ")[0]}</p>
+      <div className="px-4 md:px-8 pt-6 md:pt-0">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Dashboard</h1>
+        <p className="text-sm text-muted-foreground mb-6">Welcome back, {user?.name?.split(" ")[0]}</p>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Today's orders", value: stats?.ordersToday ?? 0, Icon: ShoppingBag, color: "text-blue-600 bg-blue-50" },
             { label: "Today's earnings", value: formatKES(stats?.earningsToday ?? 0), Icon: TrendingUp, color: "text-primary bg-orange-50" },
@@ -69,8 +69,8 @@ export default function VendorDashboard() {
               <p className="text-xs text-muted-foreground mt-1">New orders will appear here automatically</p>
             </div>
           ) : (
-            <div className="space-y-3">
-              {activeOrders.slice(0, 3).map((order) => (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {activeOrders.slice(0, 6).map((order) => (
                 <div key={order.id} className="bg-white rounded-xl border border-border p-3">
                   <div className="flex items-center justify-between mb-1.5">
                     <p className="font-bold text-sm text-foreground">#{order.id} — {order.studentName}</p>

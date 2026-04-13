@@ -62,8 +62,8 @@ export default function Cart() {
 
   return (
     <StudentLayout>
-      <div className="px-4 pt-4">
-        <h1 className="text-2xl font-bold text-foreground mb-1">Your cart</h1>
+      <div className="px-4 md:px-8 pt-6 max-w-2xl">
+        <h1 className="text-2xl md:text-3xl font-bold text-foreground mb-1">Your cart</h1>
         <p className="text-sm text-muted-foreground mb-4">From {vendorName}</p>
 
         <div className="space-y-3 mb-5">
