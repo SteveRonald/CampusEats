@@ -1,0 +1,255 @@
+BUILD A FULL PRODUCTION-READY SaaS APPLICATION: “CAMPUSEATS”
+
+You are building a real, production-grade web application called CampusEats, a campus food ordering system for university students in Kenya.
+
+This is NOT a demo. This is NOT a prototype. This must be a fully working system with real architecture, clean code, and deployable structure.
+
+1. CORE PRODUCT DEFINITION
+
+CampusEats is a marketplace-first food ordering platform where:
+
+Students browse food items first (NOT vendors)
+Vendors are secondary metadata
+Orders are placed in under 30 seconds
+Vendors fulfill orders via dashboard
+Admin manages system operations
+2. CRITICAL PRODUCT RULE (NON-NEGOTIABLE)
+
+This is a MARKETPLACE-FIRST SYSTEM
+
+DO NOT build:
+
+vendor-first navigation
+store selection flow
+directory-style browsing
+
+DO build:
+
+unified food marketplace feed (PRIMARY HOME SCREEN)
+vendor is only shown as label per food item
+3. TECH STACK (STRICT ENFORCEMENT)
+
+You MUST use ONLY:
+
+Frontend
+Next.js (React)
+Tailwind CSS (custom styling only, no UI kits)
+Backend
+Node.js + Express.js
+REST API only
+Database
+PostgreSQL ONLY (manual setup required)
+Payments
+IntaSend API (simulate if needed)
+4. CRITICAL DATABASE RULE (ABSOLUTE)
+
+DO NOT:
+
+connect to Supabase
+use Firebase
+use Prisma cloud
+auto-provision any database service
+
+ONLY:
+
+generate raw PostgreSQL SQL schema
+provide schema.sql file
+I will manually create and host the database
+5. REQUIRED SYSTEM ARCHITECTURE
+
+Generate full project with this structure:
+
+campuseats/
+│
+├── frontend/        (Next.js - Vercel)
+├── backend/         (Node.js Express - Railway)
+├── database/        (RAW SQL ONLY)
+├── shared/
+└── README.md
+6. FRONTEND STRUCTURE
+frontend/
+├── app/
+│   ├── (student)/
+│   │   ├── page.tsx  (MARKETPLACE HOME)
+│   │   ├── menu/
+│   │   ├── cart/
+│   │   └── orders/
+│   │
+│   ├── (vendor)/
+│   │   ├── dashboard/
+│   │   ├── orders/
+│   │   └── menu/
+│   │
+│   ├── (admin)/
+│   │   ├── dashboard/
+│   │   └── vendors/
+│   │
+│   └── layout.tsx
+│
+├── components/
+├── lib/
+├── styles/
+└── public/
+7. BACKEND STRUCTURE
+backend/
+├── src/
+│   ├── routes/
+│   │   ├── orders.js
+│   │   ├── vendors.js
+│   │   ├── payments.js
+│   │   └── webhook.js
+│   │
+│   ├── controllers/
+│   ├── services/
+│   │   ├── intasend.js
+│   │   └── payout.js
+│   │
+│   ├── db/
+│   │   └── client.js
+│   │
+│   └── server.js
+│
+├── .env
+└── package.json
+8. DATABASE STRUCTURE (REQUIRED TABLES)
+
+Generate PostgreSQL schema ONLY for:
+
+users (student, vendor, admin roles)
+vendors
+menu_items
+orders
+order_items
+transactions
+
+NO ORM, NO migrations tool, ONLY raw SQL.
+
+9. UI / UX DESIGN SYSTEM (STRICT ANTI-GENERIC RULES)
+
+This UI must NOT look like:
+
+SaaS dashboard template
+Tailwind UI clone
+generic admin panel
+repetitive card-grid system
+
+It MUST feel like:
+
+Uber Eats simplicity
+Jumia Food speed
+real campus utility system
+DESIGN RULES
+Layout
+Mobile-first
+Marketplace-first homepage
+Minimal navigation (max 3 tabs)
+Avoid dashboard-heavy layouts
+Typography
+Bold headings
+Simple readable body text
+Strong hierarchy (not decoration)
+Buttons
+Large, touch-friendly
+One primary action per screen
+Spacing
+Non-uniform spacing allowed for hierarchy
+Important elements must visually dominate
+COLOR SYSTEM (STRICT)
+
+Primary:
+
+Orange: #F97316
+
+Secondary:
+
+Green: #16A34A
+
+Accent:
+
+Yellow: #FACC15
+
+Danger:
+
+Red: #EF4444
+
+Background:
+
+#F9FAFB
+
+Cards:
+
+#FFFFFF
+
+Text:
+
+Primary: #111827
+Secondary: #6B7280
+10. CORE USER FLOW (MANDATORY)
+Student Flow (MUST BE SIMPLE)
+Open app
+See food marketplace immediately
+Search or filter (optional)
+Add to cart
+Checkout
+Track order
+
+NO vendor selection required.
+
+Vendor Flow
+View incoming orders
+Update status:
+Preparing
+Ready
+Completed
+Manage menu
+View earnings
+Admin Flow
+View all vendors
+View all orders
+Monitor system activity
+11. ORDER SYSTEM LOGIC
+
+Order lifecycle:
+
+Pending
+Paid (simulate payment if needed)
+Preparing
+Ready
+Completed
+
+At checkout:
+
+Automatically set order to PAID
+12. REAL-TIME BEHAVIOR
+
+Vendor dashboard must:
+
+update instantly OR
+use smart auto-refresh UX
+13. CORE PRODUCT FEATURES
+
+MUST INCLUDE:
+
+Marketplace food feed (PRIMARY)
+“Order again”
+“Popular meals today”
+Pickup time estimates (10–15 min)
+Clear order tracking
+14. PERFORMANCE GOAL
+
+A student must be able to:
+
+open app
+see food instantly
+place order in under 30 seconds
+clearly understand order status
+15. FINAL OUTPUT REQUIREMENTS
+
+You must generate:
+
+Full frontend application (Next.js)
+Full backend API (Express)
+Complete PostgreSQL schema (SQL only)
+Clean project structure
+Fully working order flow
+Deployable architecture (Vercel + Railway ready)
