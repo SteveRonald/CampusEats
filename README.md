@@ -14,35 +14,6 @@ CampusEats is a marketplace-first campus food ordering platform for Kenyan unive
 - Database: PostgreSQL with raw SQL only
 - Payments: IntaSend-compatible simulated checkout and webhook flow
 
-## Running Locally
-
-1. Create a PostgreSQL database manually.
-2. Run [schema.sql](d:/Projects/CampusEats/database/schema.sql), then optionally [seed.sql](d:/Projects/CampusEats/database/seed.sql).
-3. Copy `backend/.env.example` to `backend/.env` and set `DATABASE_URL`.
-4. Start the backend:
-
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-5. Start the frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## Demo Access
-
-The frontend includes a lightweight session switcher for three seeded roles:
-
-- Student: `student@moi.ac.ke`
-- Vendor: `mama@moi.ac.ke`
-- Admin: `admin@campuseats.co.ke`
-
 ## Product Scope
 
 - Marketplace-first food feed
