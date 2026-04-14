@@ -5,6 +5,8 @@ import {
   getVendorEarnings,
   getVendorMenu,
   getVendorOrders,
+  getVendorProfile,
+  updateVendorProfile,
   listVendors,
   toggleVendor,
   updateVendorMenuItem
@@ -15,6 +17,8 @@ const router = Router();
 
 router.get("/", listVendors);
 router.get("/:id/orders", authenticate, requireRole("vendor", "admin"), getVendorOrders);
+router.get("/:id/profile", authenticate, requireRole("vendor", "admin"), getVendorProfile);
+router.patch("/:id/profile", authenticate, requireRole("vendor", "admin"), updateVendorProfile);
 router.get("/:id/earnings", authenticate, requireRole("vendor", "admin"), getVendorEarnings);
 router.get("/:id/menu", authenticate, requireRole("vendor", "admin"), getVendorMenu);
 router.post("/:id/menu", authenticate, requireRole("vendor", "admin"), createVendorMenuItem);

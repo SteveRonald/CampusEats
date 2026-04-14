@@ -1,4 +1,16 @@
-import { AuthResponse, LoginPayload, MenuItemRecord, OrderRecord, RegisterPayload, VendorRecord, MarketplaceItem } from "@/lib/types";
+import {
+  AuthResponse,
+  ForgotPasswordPayload,
+  LoginPayload,
+  MenuItemRecord,
+  OrderRecord,
+  RegisterPayload,
+  UpdateProfilePayload,
+  UpdateVendorProfilePayload,
+  VendorBusinessProfile,
+  VendorRecord,
+  MarketplaceItem
+} from "@/lib/types";
 
 function resolveApiUrl() {
   if (process.env.NEXT_PUBLIC_API_URL) {
@@ -51,7 +63,13 @@ export const client = {
   register: (payload: RegisterPayload) => api<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify(payload) }),
   login: (payload: LoginPayload) => api<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
   adminLogin: (payload: LoginPayload) => api<AuthResponse>("/api/auth/admin/login", { method: "POST", body: JSON.stringify(payload) }),
-  me: () => api<{ profile: { role: "student" | "vendor" | "admin"; userId: number; vendorId?: number; name: string; email: string } }>("/api/auth/me"),
+  forgotPassword: (payload: ForgotPasswordPayload) =>
+    api<{ success: boolean; message: string }>("/api/auth/forgot-password", { method: "POST", body: JSON.stringify(payload) }),
+  me: () =>
+    api<{ profile: { role: "student" | "vendor" | "admin"; userId: number; vendorId?: number; name: string; email: string; phone?: string | null } }>(
+      "/api/auth/me"
+    ),
+  updateProfile: (payload: UpdateProfilePayload) => api<{ profile: AuthResponse["profile"] }>("/api/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
   marketplaceFeed: (search?: string, category?: string) =>
     api<{ items: MarketplaceItem[]; stats: { totalItems: number; totalVendors: number; avgPickupTime: number } }>(
       `/api/orders/marketplace/feed?${new URLSearchParams(
@@ -66,6 +84,9 @@ export const client = {
   updateOrderStatus: (orderId: number, status: string) =>
     api<OrderRecord>(`/api/orders/${orderId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   vendorOrders: (vendorId: number) => api<OrderRecord[]>(`/api/vendors/${vendorId}/orders`),
+  vendorProfile: (vendorId: number) => api<VendorBusinessProfile>(`/api/vendors/${vendorId}/profile`),
+  updateVendorProfile: (vendorId: number, payload: UpdateVendorProfilePayload) =>
+    api<VendorBusinessProfile>(`/api/vendors/${vendorId}/profile`, { method: "PATCH", body: JSON.stringify(payload) }),
   vendorOverview: (vendorId: number) =>
     api<{ ordersToday: number; earningsToday: number; pendingOrders: number; completedOrders: number; totalPayout: number }>(
       `/api/vendors/${vendorId}/earnings`

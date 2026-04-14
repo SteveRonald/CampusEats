@@ -10,6 +10,7 @@ const SessionContext = createContext<{
   login: (payload: LoginPayload) => Promise<SessionProfile>;
   register: (payload: RegisterPayload) => Promise<SessionProfile>;
   adminLogin: (payload: LoginPayload) => Promise<SessionProfile>;
+  refreshProfile: () => Promise<SessionProfile | null>;
   logout: () => void;
 } | null>(null);
 
@@ -111,6 +112,19 @@ export function Providers({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  const refreshProfile = async () => {
+    const token = window.localStorage.getItem("campuseats_token");
+    if (!token) {
+      setProfileState(null);
+      return null;
+    }
+
+    const { profile: freshProfile } = await client.me();
+    setProfileState(freshProfile);
+    window.localStorage.setItem("campuseats_profile", JSON.stringify(freshProfile));
+    return freshProfile;
+  };
+
   const logout = () => clearSession();
 
   const updateQuantity = (menuItemId: number, quantity: number) => {
@@ -121,7 +135,7 @@ export function Providers({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SessionContext.Provider value={{ profile, isLoading, login, register, adminLogin, logout }}>
+    <SessionContext.Provider value={{ profile, isLoading, login, register, adminLogin, refreshProfile, logout }}>
       <CartContext.Provider
         value={{
           items,

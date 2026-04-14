@@ -10,19 +10,30 @@ import { formatKES, formatDate, getStatusColor, getStatusLabel } from "@/lib/uti
 
 export default function VendorDashboardPage() {
   const { profile } = useSession();
+  const vendorId = profile?.vendorId;
   const [stats, setStats] = useState({ ordersToday: 0, earningsToday: 0, pendingOrders: 0, completedOrders: 0, totalPayout: 0 });
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!profile.vendorId) return;
-    client.vendorOverview(profile.vendorId).then(setStats);
-    client.vendorOrders(profile.vendorId).then(setOrders);
+    if (!vendorId) return;
+    const load = async () => {
+      try {
+        setLoadError(null);
+        const [nextStats, nextOrders] = await Promise.all([client.vendorOverview(vendorId), client.vendorOrders(vendorId)]);
+        setStats(nextStats);
+        setOrders(nextOrders);
+      } catch (error) {
+        setLoadError(error instanceof Error ? error.message : "Failed to fetch vendor dashboard");
+      }
+    };
+
+    load();
     const interval = setInterval(() => {
-      client.vendorOverview(profile.vendorId!).then(setStats);
-      client.vendorOrders(profile.vendorId!).then(setOrders);
+      load();
     }, 10000);
     return () => clearInterval(interval);
-  }, [profile.vendorId]);
+  }, [vendorId]);
 
   if (!profile) {
     return null;
@@ -54,6 +65,7 @@ export default function VendorDashboardPage() {
         </div>
 
         <div className="mb-4">
+          {loadError && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
           <div className="flex items-center justify-between mb-3">
             <h2 className="font-bold text-base text-foreground">Active orders</h2>
             <span className="text-xs text-muted-foreground">Auto-refreshing</span>

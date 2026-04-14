@@ -23,7 +23,8 @@ function toProfile(row) {
     publicId: createPublicId(row.id),
     vendorId: row.vendor_id ?? undefined,
     name: row.name,
-    email: row.email
+    email: row.email,
+    phone: row.phone ?? null
   };
 }
 
@@ -121,7 +122,15 @@ export async function register(req, res) {
 
     await client.query("COMMIT");
 
-    const profile = { role: user.role, userId: user.id, publicId: createPublicId(user.id), vendorId, name: user.name, email: user.email };
+    const profile = {
+      role: user.role,
+      userId: user.id,
+      publicId: createPublicId(user.id),
+      vendorId,
+      name: user.name,
+      email: user.email,
+      phone: phone || null
+    };
     const token = createToken({ id: user.id, role: user.role, vendorId });
 
     return res.status(201).json({ token, profile });
@@ -179,10 +188,73 @@ export async function adminLogin(req, res) {
   }
 }
 
+export async function forgotPassword(req, res) {
+  try {
+    const { email, newPassword } = req.body;
+
+    if (!email || !newPassword) {
+      return res.status(400).json({ error: "Email and new password are required" });
+    }
+
+    if (String(newPassword).length < 6) {
+      return res.status(400).json({ error: "New password must be at least 6 characters" });
+    }
+
+    const existing = await query(`SELECT id FROM users WHERE LOWER(email) = LOWER($1) LIMIT 1`, [email]);
+    if (!existing.rows.length) {
+      return res.status(404).json({ error: "Email not found" });
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    await query(`UPDATE users SET password_hash = $2 WHERE id = $1`, [existing.rows[0].id, passwordHash]);
+
+    return res.json({ success: true, message: "Password reset successful" });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to reset password" });
+  }
+}
+
+export async function updateProfile(req, res) {
+  try {
+    const { name, email, phone } = req.body;
+
+    if (!name || !email) {
+      return res.status(400).json({ error: "Name and email are required" });
+    }
+
+    const duplicate = await query(
+      `SELECT id FROM users WHERE LOWER(email) = LOWER($1) AND id <> $2 LIMIT 1`,
+      [email, req.user.id]
+    );
+    if (duplicate.rows.length) {
+      return res.status(409).json({ error: "Email is already in use" });
+    }
+
+    const result = await query(
+      `UPDATE users
+       SET name = $2, email = $3, phone = $4
+       WHERE id = $1
+       RETURNING id, name, email, phone, role`,
+      [req.user.id, String(name).trim(), String(email).trim(), phone ? String(phone).trim() : null]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    const vendor = await query(`SELECT id FROM vendors WHERE user_id = $1 LIMIT 1`, [req.user.id]);
+    const row = { ...result.rows[0], vendor_id: vendor.rows[0]?.id ?? null };
+
+    return res.json({ profile: toProfile(row) });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to update profile" });
+  }
+}
+
 export async function me(req, res) {
   try {
     const result = await query(
-      `SELECT u.id, u.name, u.email, u.role, v.id AS vendor_id
+      `SELECT u.id, u.name, u.email, u.phone, u.role, v.id AS vendor_id
        FROM users u
        LEFT JOIN vendors v ON v.user_id = u.id
        WHERE u.id = $1

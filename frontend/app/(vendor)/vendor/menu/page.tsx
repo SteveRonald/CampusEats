@@ -9,15 +9,16 @@ import { formatKES } from "@/lib/utils";
 
 export default function VendorMenuPage() {
   const { profile } = useSession();
+  const vendorId = profile?.vendorId;
   const [menu, setMenu] = useState<MenuItemRecord[]>([]);
   const [form, setForm] = useState({ name: "", description: "", price: "", category: "Quick Lunch", imageUrl: "" });
 
   useEffect(() => {
-    if (profile.vendorId) client.vendorMenu(profile.vendorId).then(setMenu);
-  }, [profile.vendorId]);
+    if (vendorId) client.vendorMenu(vendorId).then(setMenu);
+  }, [vendorId]);
 
   const reload = async () => {
-    if (profile.vendorId) setMenu(await client.vendorMenu(profile.vendorId));
+    if (vendorId) setMenu(await client.vendorMenu(vendorId));
   };
 
   if (!profile) {
@@ -44,8 +45,8 @@ export default function VendorMenuPage() {
             <input value={form.imageUrl} onChange={(event) => setForm({ ...form, imageUrl: event.target.value })} placeholder="Image URL" className="w-full border border-border rounded-lg px-3 py-2 text-sm outline-none" />
             <button
               onClick={async () => {
-                if (!profile.vendorId) return;
-                await client.createMenuItem(profile.vendorId, {
+                if (!vendorId) return;
+                await client.createMenuItem(vendorId, {
                   name: form.name,
                   description: form.description,
                   price: form.price,

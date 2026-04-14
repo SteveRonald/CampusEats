@@ -169,6 +169,11 @@ export default function AuthPage() {
                 onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
                 className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-primary/30"
               />
+              <div className="mt-2 text-right">
+                <Link href="/auth/forgot-password" className="text-sm font-semibold text-primary">
+                  Forgot password?
+                </Link>
+              </div>
             </div>
 
             <button disabled={submitting} className="mt-1 w-full rounded-2xl bg-primary py-3.5 text-xl font-black text-white disabled:opacity-60">

@@ -1,9 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   allowedDevOrigins: [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-    "http://192.168.201.234:3000"
+    "localhost",
+    "127.0.0.1",
+    "192.168.201.234",
+    "192.168.46.234",
+    "*.168.46.234"
   ],
   images: {
     remotePatterns: [

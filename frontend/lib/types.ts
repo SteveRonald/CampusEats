@@ -9,11 +9,35 @@ export interface SessionProfile {
   vendorId?: number;
   name: string;
   email: string;
+  phone?: string | null;
 }
 
 export interface LoginPayload {
   email: string;
   password: string;
+}
+
+export interface ForgotPasswordPayload {
+  email: string;
+  newPassword: string;
+}
+
+export interface UpdateProfilePayload {
+  name: string;
+  email: string;
+  phone?: string;
+}
+
+export interface UpdateVendorProfilePayload {
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone?: string;
+  stallName: string;
+  description?: string;
+  mpesaNumber: string;
+  location?: string;
+  pickupTimeMin: number;
+  pickupTimeMax: number;
 }
 
 export interface RegisterPayload {
@@ -76,6 +100,7 @@ export interface OrderRecord {
   student_id: number | null;
   vendor_id: number;
   student_name: string;
+  student_phone?: string | null;
   status: OrderStatus;
   total_amount: string;
   pickup_code: string;
@@ -89,6 +114,22 @@ export interface OrderRecord {
   pickup_time_min: number;
   pickup_time_max: number;
   items: OrderItem[];
+}
+
+export interface VendorBusinessProfile {
+  id: number;
+  user_id: number;
+  stall_name: string;
+  description: string | null;
+  mpesa_number: string;
+  image_url: string | null;
+  location: string | null;
+  pickup_time_min: number;
+  pickup_time_max: number;
+  is_active: boolean;
+  owner_name: string;
+  owner_email: string;
+  owner_phone: string | null;
 }
 
 export interface VendorRecord {

@@ -134,9 +134,9 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col bg-white md:border-x md:border-border md:shadow-sm">
         <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-white px-4 py-3 shadow-sm md:px-6">
-          <div className="flex items-center">
+          <Link href="/" aria-label="Go to home" className="flex items-center">
             <Image src="/logo.png" alt="CampusEats" width={170} height={44} className="h-9 w-auto md:h-10" priority />
-          </div>
+          </Link>
           <SessionActions />
         </header>
 
@@ -176,9 +176,10 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col bg-white md:border-x md:border-border md:shadow-sm">
         <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-white px-4 py-3 shadow-sm md:px-6">
-          <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto md:h-9" />
-            <span className="text-sm font-bold text-foreground">Vendor Portal</span>
+          <div className="flex items-center">
+            <Link href="/" aria-label="Go to home" className="flex items-center">
+              <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto md:h-9" />
+            </Link>
           </div>
           <SessionActions />
         </header>
@@ -214,9 +215,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col bg-white md:border-x md:border-border md:shadow-sm">
         <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-white px-4 py-3 shadow-sm md:px-6">
-          <div className="flex items-center gap-2">
-            <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto md:h-9" />
-            <span className="text-sm font-bold text-foreground">Admin Panel</span>
+          <div className="flex flex-col items-start">
+            <Link href="/" aria-label="Go to home" className="flex items-center">
+              <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto md:h-9" />
+            </Link>
+            <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Admin Panel</span>
           </div>
           <SessionActions />
         </header>
