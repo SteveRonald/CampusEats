@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { useCart, useSession } from "@/components/providers";
@@ -13,15 +13,25 @@ export default function CartPage() {
   const { items, clearCart, totalAmount, updateQuantity, vendorId } = useCart();
   const { profile } = useSession();
   const [notes, setNotes] = useState("");
-  const [studentName, setStudentName] = useState(profile.name);
+  const [studentName, setStudentName] = useState(profile?.name ?? "");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (profile?.name) {
+      setStudentName(profile.name);
+    }
+  }, [profile?.name]);
+
   const handleCheckout = async () => {
+    if (!profile) {
+      router.push("/auth?returnTo=/cart");
+      return;
+    }
+
     if (items.length === 0 || !vendorId) return;
     setSubmitting(true);
     try {
       const order = await client.checkout({
-        studentId: profile.userId,
         vendorId,
         studentName,
         notes,
@@ -58,7 +68,9 @@ export default function CartPage() {
     <StudentLayout>
       <div className="px-4 pt-4">
         <h1 className="text-2xl font-bold text-foreground mb-1">Your cart</h1>
-        <p className="text-sm text-muted-foreground mb-4">Checkout uses simulated IntaSend and marks the order paid instantly</p>
+        <p className="text-sm text-muted-foreground mb-4">
+          {profile ? "Checkout uses simulated IntaSend and marks the order paid instantly" : "Browse freely. Sign in only when you are ready to place the order."}
+        </p>
 
         <div className="space-y-3 mb-5">
           {items.map((item) => (
@@ -98,8 +110,10 @@ export default function CartPage() {
           <input
             value={studentName}
             onChange={(event) => setStudentName(event.target.value)}
+            placeholder={profile ? "Your name" : "Enter your name before checkout"}
             className="w-full border border-border rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
           />
+          {!profile && <p className="mt-1 text-xs text-muted-foreground">You can fill this now and sign in when you place the order.</p>}
         </div>
 
         <div className="bg-white rounded-xl border border-border p-4 mb-4">
@@ -132,7 +146,7 @@ export default function CartPage() {
           disabled={submitting}
           className="w-full bg-primary text-white py-4 rounded-xl font-bold text-base hover:bg-primary/90 active:scale-[0.99] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "Placing order..." : `Place order - ${formatKES(totalAmount)}`}
+          {submitting ? "Placing order..." : profile ? `Place order - ${formatKES(totalAmount)}` : "Sign in to place order"}
         </button>
       </div>
     </StudentLayout>

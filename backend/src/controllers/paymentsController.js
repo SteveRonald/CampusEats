@@ -7,7 +7,15 @@ export async function checkout(req, res) {
   const client = await pool.connect();
 
   try {
-    const { studentId, vendorId, studentName, notes, items } = req.body;
+    const { vendorId, studentName, notes, items } = req.body;
+
+    if (!Array.isArray(items) || !items.length) {
+      return res.status(400).json({ error: "At least one item is required" });
+    }
+
+    if (!vendorId) {
+      return res.status(400).json({ error: "Vendor is required" });
+    }
 
     await client.query("BEGIN");
 
@@ -34,7 +42,7 @@ export async function checkout(req, res) {
       `INSERT INTO orders (student_id, vendor_id, student_name, status, total_amount, pickup_code, notes)
        VALUES ($1, $2, $3, 'paid', $4, $5, $6)
        RETURNING *`,
-      [studentId || null, vendorId, studentName, totalAmount, buildPickupCode(), notes || null]
+      [req.user.id, vendorId, studentName || req.user.name || "Student", totalAmount, buildPickupCode(), notes || null]
     );
 
     const order = orderResult.rows[0];

@@ -24,15 +24,19 @@ export default function VendorDashboardPage() {
     return () => clearInterval(interval);
   }, [profile.vendorId]);
 
+  if (!profile) {
+    return null;
+  }
+
   const activeOrders = orders.filter((order) => ["paid", "preparing", "ready"].includes(order.status));
 
   return (
     <VendorLayout>
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-4 md:px-6 lg:px-8">
         <h1 className="text-2xl font-bold text-foreground mb-1">Dashboard</h1>
         <p className="text-sm text-muted-foreground mb-6">Welcome back, {profile.name.split(" ")[0]}</p>
 
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-8 md:grid-cols-4">
           {[
             { label: "Today's orders", value: stats.ordersToday, Icon: ShoppingBag, color: "text-blue-600 bg-blue-50" },
             { label: "Today's earnings", value: formatKES(stats.earningsToday), Icon: TrendingUp, color: "text-primary bg-orange-50" },
@@ -60,7 +64,7 @@ export default function VendorDashboardPage() {
               <p className="text-xs text-muted-foreground mt-1">New orders will appear here automatically</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="grid gap-3 md:grid-cols-2">
               {activeOrders.slice(0, 6).map((order) => (
                 <div key={order.id} className="bg-white rounded-xl border border-border p-3">
                   <div className="flex items-center justify-between mb-1.5">

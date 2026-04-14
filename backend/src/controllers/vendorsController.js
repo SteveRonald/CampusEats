@@ -12,6 +12,11 @@ export async function listVendors(_req, res) {
 
 export async function getVendorOrders(req, res) {
   try {
+    const vendorId = Number(req.params.id);
+    if (req.user.role === "vendor" && req.user.vendorId !== vendorId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
               v.pickup_time_min, v.pickup_time_max
@@ -19,7 +24,7 @@ export async function getVendorOrders(req, res) {
        INNER JOIN vendors v ON v.id = o.vendor_id
        WHERE o.vendor_id = $1
        ORDER BY o.created_at DESC`,
-      [Number(req.params.id)]
+      [vendorId]
     );
     res.json(await hydrateOrders(result.rows));
   } catch (error) {
@@ -30,6 +35,10 @@ export async function getVendorOrders(req, res) {
 export async function getVendorEarnings(req, res) {
   try {
     const vendorId = Number(req.params.id);
+    if (req.user.role === "vendor" && req.user.vendorId !== vendorId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const result = await query(
       `SELECT
          (SELECT COUNT(*) FROM orders WHERE vendor_id = $1 AND created_at::date = CURRENT_DATE)::int AS "ordersToday",
@@ -47,9 +56,14 @@ export async function getVendorEarnings(req, res) {
 
 export async function getVendorMenu(req, res) {
   try {
+    const vendorId = Number(req.params.id);
+    if (req.user.role === "vendor" && req.user.vendorId !== vendorId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const result = await query(
       `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY created_at DESC`,
-      [Number(req.params.id)]
+      [vendorId]
     );
     res.json(result.rows);
   } catch (error) {
@@ -59,12 +73,17 @@ export async function getVendorMenu(req, res) {
 
 export async function createVendorMenuItem(req, res) {
   try {
+    const vendorId = Number(req.params.id);
+    if (req.user.role === "vendor" && req.user.vendorId !== vendorId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const { name, description, price, category, imageUrl } = req.body;
     const result = await query(
       `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [Number(req.params.id), name, description || null, Number(price), category, imageUrl || null]
+      [vendorId, name, description || null, Number(price), category, imageUrl || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -77,6 +96,10 @@ export async function updateVendorMenuItem(req, res) {
     const current = await query(`SELECT * FROM menu_items WHERE id = $1`, [Number(req.params.itemId)]);
     if (!current.rows.length) {
       return res.status(404).json({ error: "Menu item not found" });
+    }
+
+    if (req.user.role === "vendor" && req.user.vendorId !== current.rows[0].vendor_id) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     const next = { ...current.rows[0], ...req.body };
@@ -95,6 +118,15 @@ export async function updateVendorMenuItem(req, res) {
 
 export async function deleteVendorMenuItem(req, res) {
   try {
+    const current = await query(`SELECT vendor_id FROM menu_items WHERE id = $1`, [Number(req.params.itemId)]);
+    if (!current.rows.length) {
+      return res.status(404).json({ error: "Menu item not found" });
+    }
+
+    if (req.user.role === "vendor" && req.user.vendorId !== current.rows[0].vendor_id) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     await query(`DELETE FROM menu_items WHERE id = $1`, [Number(req.params.itemId)]);
     res.json({ success: true });
   } catch (error) {

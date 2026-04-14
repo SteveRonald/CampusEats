@@ -17,9 +17,9 @@ export default function AdminVendorsPage() {
     <AdminLayout>
       <div className="pt-4">
         <h1 className="text-2xl font-bold text-foreground mb-5">Vendors</h1>
-        <div className="space-y-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           {vendors.map((vendor) => (
-            <div key={vendor.id} className="bg-white rounded-xl border border-border p-4">
+            <div key={vendor.id} className="bg-white rounded-xl border border-border p-4 md:p-5">
               <div className="flex items-start gap-3">
                 <div className="w-12 h-12 bg-orange-50 rounded-xl flex items-center justify-center flex-shrink-0">
                   {vendor.image_url ? (

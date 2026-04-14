@@ -75,15 +75,15 @@ export async function getCategories(_req, res) {
 
 export async function listStudentOrders(req, res) {
   try {
-    const { studentId } = req.query;
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
-       WHERE ($1::int IS NULL OR o.student_id = $1)
+       INNER JOIN users u ON u.id = v.user_id
+       WHERE o.student_id = $1
        ORDER BY o.created_at DESC`,
-      [studentId ? Number(studentId) : null]
+      [req.user.id]
     );
     res.json(await hydrateOrders(result.rows));
   } catch (error) {
@@ -95,15 +95,25 @@ export async function getOrder(req, res) {
   try {
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
+       INNER JOIN users u ON u.id = v.user_id
        WHERE o.id = $1`,
       [Number(req.params.id)]
     );
 
     if (!result.rows.length) {
       return res.status(404).json({ error: "Order not found" });
+    }
+
+    const orderRow = result.rows[0];
+    const isOwnerStudent = req.user.role === "student" && orderRow.student_id === req.user.id;
+    const isOwnerVendor = req.user.role === "vendor" && orderRow.vendor_id === req.user.vendorId;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwnerStudent && !isOwnerVendor && !isAdmin) {
+      return res.status(403).json({ error: "Forbidden" });
     }
 
     const [order] = await hydrateOrders(result.rows);
@@ -116,6 +126,23 @@ export async function getOrder(req, res) {
 export async function updateOrderStatus(req, res) {
   try {
     const { status } = req.body;
+    if (!["preparing", "ready", "completed"].includes(status)) {
+      return res.status(400).json({ error: "Invalid order status" });
+    }
+
+    const existing = await query(`SELECT id, vendor_id FROM orders WHERE id = $1`, [Number(req.params.id)]);
+    if (!existing.rows.length) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    if (req.user.role === "vendor" && existing.rows[0].vendor_id !== req.user.vendorId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (!["vendor", "admin"].includes(req.user.role)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const result = await query(
       `UPDATE orders
        SET status = $2, updated_at = NOW()
@@ -130,9 +157,10 @@ export async function updateOrderStatus(req, res) {
 
     const fullOrder = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
+       INNER JOIN users u ON u.id = v.user_id
        WHERE o.id = $1`,
       [Number(req.params.id)]
     );
@@ -165,9 +193,10 @@ export async function getAdminOrders(_req, res) {
   try {
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
+       INNER JOIN users u ON u.id = v.user_id
        ORDER BY o.created_at DESC`
     );
     res.json(await hydrateOrders(result.rows));

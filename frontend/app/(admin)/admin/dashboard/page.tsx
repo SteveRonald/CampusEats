@@ -21,7 +21,7 @@ export default function AdminDashboardPage() {
         <h1 className="text-2xl font-bold text-foreground mb-1">Admin Dashboard</h1>
         <p className="text-sm text-muted-foreground mb-5">CampusEats system overview</p>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
+        <div className="grid grid-cols-2 gap-3 mb-6 md:grid-cols-3 xl:grid-cols-6">
           {[
             { label: "Total orders", value: stats.totalOrders, Icon: ShoppingBag, color: "bg-blue-50 text-blue-600" },
             { label: "Orders today", value: stats.ordersToday, Icon: TrendingUp, color: "bg-orange-50 text-primary" },
@@ -40,7 +40,7 @@ export default function AdminDashboardPage() {
           ))}
         </div>
 
-        <div className="bg-orange-50 border border-primary/20 rounded-xl p-4 mt-4">
+        <div className="bg-orange-50 border border-primary/20 rounded-xl p-4 mt-4 md:p-5">
           <p className="text-sm font-bold text-foreground mb-1">Commission model</p>
           <p className="text-xs text-muted-foreground">Platform earns 10% on every order. 90% goes to vendor payout in the simulated IntaSend flow.</p>
           <p className="text-sm font-bold text-primary mt-1">{formatKES(stats.totalCommission)} earned total</p>

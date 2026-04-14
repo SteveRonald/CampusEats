@@ -26,6 +26,10 @@ export default function VendorOrdersPage() {
     return () => clearInterval(interval);
   }, [profile.vendorId]);
 
+  if (!profile) {
+    return null;
+  }
+
   const filtered = orders.filter((order) => {
     if (filter === "active") return ["paid", "preparing", "ready"].includes(order.status);
     if (filter === "completed") return order.status === "completed";
@@ -34,13 +38,13 @@ export default function VendorOrdersPage() {
 
   return (
     <VendorLayout>
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-4 md:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold text-foreground">Orders</h1>
           <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">Auto-refreshes</span>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-2 mb-4 flex-wrap">
           {[
             { key: "active", label: "Active" },
             { key: "completed", label: "Completed" },
@@ -58,7 +62,7 @@ export default function VendorOrdersPage() {
           ))}
         </div>
 
-        <div className="space-y-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {filtered.map((order) => {
             const action = STATUS_ACTIONS[order.status];
             return (

@@ -5,9 +5,35 @@ export type OrderStatus = "pending" | "paid" | "preparing" | "ready" | "complete
 export interface SessionProfile {
   role: Role;
   userId: number;
+  publicId?: string;
   vendorId?: number;
   name: string;
   email: string;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  role: "student" | "vendor";
+  name: string;
+  email: string;
+  phone?: string;
+  password: string;
+  stallName?: string;
+  description?: string;
+  mpesaNumber?: string;
+  imageUrl?: string;
+  location?: string;
+  pickupTimeMin?: number;
+  pickupTimeMax?: number;
+}
+
+export interface AuthResponse {
+  token: string;
+  profile: SessionProfile;
 }
 
 export interface MarketplaceItem {
@@ -58,6 +84,7 @@ export interface OrderRecord {
   created_at: string;
   updated_at: string;
   vendor_name: string;
+  vendor_phone: string | null;
   vendor_location: string | null;
   pickup_time_min: number;
   pickup_time_max: number;

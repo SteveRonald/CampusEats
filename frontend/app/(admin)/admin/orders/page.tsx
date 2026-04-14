@@ -19,7 +19,7 @@ export default function AdminOrdersPage() {
     <AdminLayout>
       <div className="pt-4">
         <h1 className="text-2xl font-bold text-foreground mb-4">All Orders</h1>
-        <div className="space-y-2">
+        <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
           {orders.map((order) => (
             <div key={order.id} className="bg-white rounded-xl border border-border p-3">
               <div className="flex items-start justify-between gap-2 mb-1.5">

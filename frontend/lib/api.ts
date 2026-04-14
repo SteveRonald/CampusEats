@@ -1,16 +1,39 @@
-import { MenuItemRecord, OrderRecord, VendorRecord, MarketplaceItem } from "@/lib/types";
+import { AuthResponse, LoginPayload, MenuItemRecord, OrderRecord, RegisterPayload, VendorRecord, MarketplaceItem } from "@/lib/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+function resolveApiUrl() {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+
+  if (typeof window !== "undefined") {
+    return `${window.location.protocol}//${window.location.hostname}:4000`;
+  }
+
+  return "http://localhost:4000";
+}
+
+function getAuthToken() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("campuseats_token");
+}
 
 async function api<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {})
-    },
-    cache: "no-store"
-  });
+  let response: Response;
+  const apiUrl = resolveApiUrl();
+
+  try {
+    response = await fetch(`${apiUrl}${path}`, {
+      ...init,
+      headers: {
+        "Content-Type": "application/json",
+        ...(getAuthToken() ? { Authorization: `Bearer ${getAuthToken()}` } : {}),
+        ...(init?.headers ?? {})
+      },
+      cache: "no-store"
+    });
+  } catch (_error) {
+    throw new Error("Failed to connect to API");
+  }
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({ error: "Request failed" }));
@@ -25,6 +48,10 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const client = {
+  register: (payload: RegisterPayload) => api<AuthResponse>("/api/auth/register", { method: "POST", body: JSON.stringify(payload) }),
+  login: (payload: LoginPayload) => api<AuthResponse>("/api/auth/login", { method: "POST", body: JSON.stringify(payload) }),
+  adminLogin: (payload: LoginPayload) => api<AuthResponse>("/api/auth/admin/login", { method: "POST", body: JSON.stringify(payload) }),
+  me: () => api<{ profile: { role: "student" | "vendor" | "admin"; userId: number; vendorId?: number; name: string; email: string } }>("/api/auth/me"),
   marketplaceFeed: (search?: string, category?: string) =>
     api<{ items: MarketplaceItem[]; stats: { totalItems: number; totalVendors: number; avgPickupTime: number } }>(
       `/api/orders/marketplace/feed?${new URLSearchParams(
@@ -34,7 +61,7 @@ export const client = {
   popularMeals: () => api<MarketplaceItem[]>("/api/orders/marketplace/popular"),
   categories: () => api<string[]>("/api/orders/marketplace/categories"),
   checkout: (payload: object) => api<OrderRecord>("/api/payments/checkout", { method: "POST", body: JSON.stringify(payload) }),
-  studentOrders: (studentId: number) => api<OrderRecord[]>(`/api/orders?studentId=${studentId}`),
+  studentOrders: () => api<OrderRecord[]>("/api/orders"),
   order: (orderId: number) => api<OrderRecord>(`/api/orders/${orderId}`),
   updateOrderStatus: (orderId: number, status: string) =>
     api<OrderRecord>(`/api/orders/${orderId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),

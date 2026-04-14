@@ -5,6 +5,7 @@ import ordersRouter from "./routes/orders.js";
 import vendorsRouter from "./routes/vendors.js";
 import paymentsRouter from "./routes/payments.js";
 import webhookRouter from "./routes/webhook.js";
+import authRouter from "./routes/auth.js";
 
 dotenv.config();
 
@@ -35,6 +36,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+app.use("/api/auth", authRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/vendors", vendorsRouter);
 app.use("/api/payments", paymentsRouter);

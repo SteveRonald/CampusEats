@@ -37,7 +37,7 @@ export default function HomePage() {
 
   return (
     <StudentLayout>
-      <div className="px-4 pt-4 pb-2 bg-white">
+      <div className="px-4 pt-4 pb-2 bg-white md:px-6 lg:px-8">
         <div className="mb-3">
           <h1 className="text-2xl font-bold text-foreground">What are you hungry for?</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
@@ -57,7 +57,7 @@ export default function HomePage() {
       </div>
 
       {categories.length > 0 && (
-        <div className="overflow-x-auto flex gap-2 px-4 py-3 bg-white border-b border-border scrollbar-none">
+        <div className="overflow-x-auto flex gap-2 px-4 py-3 bg-white border-b border-border scrollbar-none md:px-6 lg:px-8">
           <button
             onClick={() => setSelectedCategory(undefined)}
             className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
@@ -80,7 +80,7 @@ export default function HomePage() {
         </div>
       )}
 
-      <div className="px-4 py-4">
+      <div className="px-4 py-4 md:px-6 lg:px-8">
         {error && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
             {error}
@@ -93,9 +93,9 @@ export default function HomePage() {
               <h2 className="font-bold text-base text-foreground">Popular today</h2>
               <span className="text-xs text-primary font-semibold">Trending</span>
             </div>
-            <div className="overflow-x-auto flex gap-3 pb-2 scrollbar-none -mx-4 px-4">
+            <div className="overflow-x-auto flex gap-3 pb-2 scrollbar-none -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-4 md:overflow-visible">
               {popular.map((item) => (
-                <div key={item.id} className="flex-shrink-0 w-44">
+                <div key={item.id} className="flex-shrink-0 w-44 md:w-auto">
                   <FoodCard
                     id={item.id}
                     name={item.name}
@@ -138,7 +138,7 @@ export default function HomePage() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-4">
             {items.map((item) => (
               <FoodCard
                 key={item.id}

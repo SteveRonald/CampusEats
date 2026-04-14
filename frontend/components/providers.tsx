@@ -1,18 +1,16 @@
 "use client";
 
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
-import { CartItem, SessionProfile } from "@/lib/types";
-
-const PROFILES: SessionProfile[] = [
-  { role: "student", userId: 1, name: "Campus Student", email: "student@moi.ac.ke" },
-  { role: "vendor", userId: 2, vendorId: 1, name: "Mama Njeri", email: "mama@moi.ac.ke" },
-  { role: "admin", userId: 3, name: "Campus Admin", email: "admin@campuseats.co.ke" }
-];
+import { client } from "@/lib/api";
+import { AuthResponse, CartItem, LoginPayload, RegisterPayload, SessionProfile } from "@/lib/types";
 
 const SessionContext = createContext<{
-  profile: SessionProfile;
-  setProfile: (profile: SessionProfile) => void;
-  profiles: SessionProfile[];
+  profile: SessionProfile | null;
+  isLoading: boolean;
+  login: (payload: LoginPayload) => Promise<SessionProfile>;
+  register: (payload: RegisterPayload) => Promise<SessionProfile>;
+  adminLogin: (payload: LoginPayload) => Promise<SessionProfile>;
+  logout: () => void;
 } | null>(null);
 
 const CartContext = createContext<{
@@ -27,19 +25,68 @@ const CartContext = createContext<{
 } | null>(null);
 
 export function Providers({ children }: { children: ReactNode }) {
-  const [profile, setProfileState] = useState<SessionProfile>(PROFILES[0]);
+  const [profile, setProfileState] = useState<SessionProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [items, setItemsState] = useState<CartItem[]>([]);
 
+  const persistSession = ({ token, profile: nextProfile }: AuthResponse) => {
+    setProfileState(nextProfile);
+    window.localStorage.setItem("campuseats_token", token);
+    window.localStorage.setItem("campuseats_profile", JSON.stringify(nextProfile));
+    return nextProfile;
+  };
+
+  const clearSession = () => {
+    setProfileState(null);
+    setItemsState([]);
+    window.localStorage.removeItem("campuseats_token");
+    window.localStorage.removeItem("campuseats_profile");
+    window.localStorage.removeItem("campuseats_cart");
+  };
+
   useEffect(() => {
+    const storedToken = window.localStorage.getItem("campuseats_token");
     const storedProfile = window.localStorage.getItem("campuseats_profile");
     const storedCart = window.localStorage.getItem("campuseats_cart");
-    if (storedProfile) setProfileState(JSON.parse(storedProfile));
+
+    if (storedProfile) {
+      setProfileState(JSON.parse(storedProfile));
+    }
+
     if (storedCart) setItemsState(JSON.parse(storedCart));
+
+    if (!storedToken) {
+      setIsLoading(false);
+      return;
+    }
+
+    client
+      .me()
+      .then(({ profile: freshProfile }) => {
+        setProfileState(freshProfile);
+        window.localStorage.setItem("campuseats_profile", JSON.stringify(freshProfile));
+      })
+      .catch(() => {
+        clearSession();
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
   }, []);
 
-  const setProfile = (nextProfile: SessionProfile) => {
-    setProfileState(nextProfile);
-    window.localStorage.setItem("campuseats_profile", JSON.stringify(nextProfile));
+  const login = async (payload: LoginPayload) => {
+    const response = await client.login(payload);
+    return persistSession(response);
+  };
+
+  const register = async (payload: RegisterPayload) => {
+    const response = await client.register(payload);
+    return persistSession(response);
+  };
+
+  const adminLogin = async (payload: LoginPayload) => {
+    const response = await client.adminLogin(payload);
+    return persistSession(response);
   };
 
   const setItems = (nextItems: CartItem[]) => {
@@ -64,6 +111,8 @@ export function Providers({ children }: { children: ReactNode }) {
 
   const clearCart = () => setItems([]);
 
+  const logout = () => clearSession();
+
   const updateQuantity = (menuItemId: number, quantity: number) => {
     const nextItems = items
       .map((item) => (item.menuItemId === menuItemId ? { ...item, quantity } : item))
@@ -72,7 +121,7 @@ export function Providers({ children }: { children: ReactNode }) {
   };
 
   return (
-    <SessionContext.Provider value={{ profile, setProfile, profiles: PROFILES }}>
+    <SessionContext.Provider value={{ profile, isLoading, login, register, adminLogin, logout }}>
       <CartContext.Provider
         value={{
           items,
