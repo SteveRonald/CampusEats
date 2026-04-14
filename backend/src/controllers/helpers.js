@@ -9,10 +9,12 @@ export async function hydrateOrders(orderRows) {
 
   const orderIds = orderRows.map((order) => order.id);
   const itemResult = await query(
-    `SELECT id, order_id, menu_item_id, menu_item_name, quantity, unit_price
-     FROM order_items
+    `SELECT oi.id, oi.order_id, oi.menu_item_id, oi.menu_item_name, oi.quantity, oi.unit_price,
+            m.image_url AS menu_item_image_url
+     FROM order_items oi
+     LEFT JOIN menu_items m ON m.id = oi.menu_item_id
      WHERE order_id = ANY($1::int[])
-     ORDER BY id ASC`,
+     ORDER BY oi.id ASC`,
     [orderIds]
   );
 

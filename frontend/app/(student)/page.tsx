@@ -16,9 +16,19 @@ export default function HomePage() {
   const [stats, setStats] = useState({ totalItems: 0, totalVendors: 0, avgPickupTime: 12 });
   const [error, setError] = useState<string | null>(null);
 
+  const normalizedSearch = search.trim().toLowerCase();
+  const inferredCategory = !selectedCategory && normalizedSearch
+    ? categories.find((category) => {
+        const normalizedCategory = category.toLowerCase();
+        return normalizedCategory.includes(normalizedSearch) || normalizedSearch.includes(normalizedCategory);
+      })
+    : undefined;
+  const effectiveCategory = selectedCategory ?? inferredCategory;
+  const effectiveSearch = inferredCategory && !selectedCategory ? undefined : search || undefined;
+
   useEffect(() => {
     client
-      .marketplaceFeed(search || undefined, selectedCategory)
+      .marketplaceFeed(effectiveSearch, effectiveCategory)
       .then((data) => {
         setItems(data.items);
         setStats(data.stats);
@@ -28,7 +38,7 @@ export default function HomePage() {
         setItems([]);
         setError("Could not load menu items. Check again later.");
       });
-  }, [search, selectedCategory]);
+  }, [effectiveSearch, effectiveCategory]);
 
   useEffect(() => {
     client.popularMeals().then(setPopular).catch(() => setPopular([]));
@@ -48,7 +58,7 @@ export default function HomePage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <input
             type="search"
-            placeholder="Search food..."
+            placeholder="Search food or category (Breakfast, Lunch)..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             className="w-full pl-10 pr-4 py-2.5 bg-muted rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/30 transition-all"
@@ -117,7 +127,7 @@ export default function HomePage() {
 
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-base text-foreground">
-            {search ? `Results for "${search}"` : selectedCategory ? selectedCategory : "All food"}
+            {search ? `Results for "${search}"` : effectiveCategory ? effectiveCategory : "All food"}
           </h2>
           <span className="text-xs text-muted-foreground">{items.length} items</span>
         </div>

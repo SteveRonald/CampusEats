@@ -8,9 +8,9 @@ import { VendorBusinessProfile } from "@/lib/types";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-xl border border-border bg-white px-4 py-3">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-semibold text-foreground">{value}</span>
+    <div className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-2.5">
+      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</span>
+      <span className="text-sm font-semibold text-[#1F2937]">{value}</span>
     </div>
   );
 }
@@ -158,20 +158,20 @@ export default function VendorProfilePage() {
 
   return (
     <VendorLayout>
-      <div className="px-4 pt-4 md:px-6 lg:px-8 space-y-4">
+      <div className="bg-[#F8FAFC] px-4 pt-4 md:px-6 lg:px-8 space-y-4" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-          <p className="text-sm text-muted-foreground">Vendor account and business details</p>
+          <h1 className="text-lg font-bold text-[#1F2937] md:text-xl">Business Profile</h1>
+          <p className="text-xs text-slate-500 md:text-sm">Keep vendor identity, payout, and pickup details up to date.</p>
         </div>
 
-        {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-        {success && <p className="rounded-xl border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
+        {error && <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
+        {success && <p className="rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">{success}</p>}
 
-        <form onSubmit={handleSave} className="space-y-2">
+        <form onSubmit={handleSave} className="space-y-2 rounded-lg border border-slate-200 bg-white p-4">
           {editing ? (
             <>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">Owner name</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Owner name</label>
                 <input
                   value={draft.ownerName}
                   onChange={(event) => {
@@ -179,12 +179,12 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, ownerName: event.target.value }));
                   }}
-                  className="w-full text-sm font-semibold text-foreground outline-none"
+                  className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   required
                 />
               </div>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">Owner email</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Owner email</label>
                 <input
                   type="email"
                   value={draft.ownerEmail}
@@ -193,12 +193,12 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, ownerEmail: event.target.value }));
                   }}
-                  className="w-full text-sm font-semibold text-foreground outline-none"
+                  className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   required
                 />
               </div>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">Business phone</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Business phone</label>
                 <input
                   value={draft.ownerPhone}
                   onChange={(event) => {
@@ -206,12 +206,12 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, ownerPhone: event.target.value }));
                   }}
-                  className="w-full text-sm font-semibold text-foreground outline-none"
+                  className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   placeholder="07XX XXX XXX"
                 />
               </div>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">Business name</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Business name</label>
                 <input
                   value={draft.stallName}
                   onChange={(event) => {
@@ -219,12 +219,12 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, stallName: event.target.value }));
                   }}
-                  className="w-full text-sm font-semibold text-foreground outline-none"
+                  className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   required
                 />
               </div>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">Business location</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Business location</label>
                 <input
                   value={draft.location}
                   onChange={(event) => {
@@ -232,11 +232,11 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, location: event.target.value }));
                   }}
-                  className="w-full text-sm font-semibold text-foreground outline-none"
+                  className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                 />
               </div>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">Business description</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Business description</label>
                 <textarea
                   value={draft.description}
                   onChange={(event) => {
@@ -244,12 +244,12 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, description: event.target.value }));
                   }}
-                  className="w-full resize-none text-sm font-semibold text-foreground outline-none"
+                  className="w-full resize-none text-sm font-semibold text-[#1F2937] outline-none"
                   rows={2}
                 />
               </div>
-              <div className="rounded-xl border border-border bg-white px-4 py-3">
-                <label className="mb-1 block text-sm text-muted-foreground">M-Pesa number</label>
+              <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">M-Pesa number</label>
                 <input
                   value={draft.mpesaNumber}
                   onChange={(event) => {
@@ -257,13 +257,13 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     setDraft((c) => ({ ...c, mpesaNumber: event.target.value }));
                   }}
-                  className="w-full text-sm font-semibold text-foreground outline-none"
+                  className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   required
                 />
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <div className="rounded-xl border border-border bg-white px-4 py-3">
-                  <label className="mb-1 block text-sm text-muted-foreground">Fastest pickup (mins)</label>
+                <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Fastest pickup (mins)</label>
                   <input
                     type="number"
                     min={5}
@@ -273,11 +273,11 @@ export default function VendorProfilePage() {
                       setSuccess(null);
                       setDraft((c) => ({ ...c, pickupTimeMin: event.target.value }));
                     }}
-                    className="w-full text-sm font-semibold text-foreground outline-none"
+                    className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   />
                 </div>
-                <div className="rounded-xl border border-border bg-white px-4 py-3">
-                  <label className="mb-1 block text-sm text-muted-foreground">Longest pickup (mins)</label>
+                <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Longest pickup (mins)</label>
                   <input
                     type="number"
                     min={5}
@@ -287,7 +287,7 @@ export default function VendorProfilePage() {
                       setSuccess(null);
                       setDraft((c) => ({ ...c, pickupTimeMax: event.target.value }));
                     }}
-                    className="w-full text-sm font-semibold text-foreground outline-none"
+                    className="w-full text-sm font-semibold text-[#1F2937] outline-none"
                   />
                 </div>
               </div>
@@ -309,12 +309,12 @@ export default function VendorProfilePage() {
             </>
           )}
 
-          {editing ? <p className="text-xs text-muted-foreground px-1">Role, Account ID, and Vendor ID are read-only.</p> : null}
+          {editing ? <p className="px-1 text-xs text-slate-500">Role, Account ID, and Vendor ID are read-only.</p> : null}
 
           <div className="pt-2 flex gap-2">
             {editing ? (
               <>
-                <button type="submit" disabled={submitting || !hasChanges} className="flex-1 rounded-xl bg-primary py-2.5 text-sm font-bold text-white disabled:opacity-60">
+                <button type="submit" disabled={submitting || !hasChanges} className="flex-1 rounded-md bg-primary py-2.5 text-sm font-bold text-white disabled:opacity-60">
                   {submitting ? "Saving..." : "Save changes"}
                 </button>
                 <button
@@ -325,7 +325,7 @@ export default function VendorProfilePage() {
                     setSuccess(null);
                     resetFormFromBusiness();
                   }}
-                  className="flex-1 rounded-xl border border-border bg-white py-2.5 text-sm font-bold text-foreground"
+                  className="flex-1 rounded-md border border-slate-200 bg-white py-2.5 text-sm font-bold text-[#1F2937]"
                 >
                   Cancel
                 </button>
@@ -339,7 +339,7 @@ export default function VendorProfilePage() {
                   setSuccess(null);
                   resetFormFromBusiness();
                 }}
-                className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-white"
+                className="w-full rounded-md bg-primary py-2.5 text-sm font-bold text-white"
               >
                 Edit profile
               </button>

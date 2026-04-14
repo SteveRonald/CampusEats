@@ -17,6 +17,33 @@ function toWhatsAppPhone(phone: string | null | undefined): string | null {
   return digits;
 }
 
+function HighlightMatch({ text, query }: { text: string; query: string }) {
+  const normalizedQuery = query.trim().toLowerCase();
+
+  if (!normalizedQuery) {
+    return <>{text}</>;
+  }
+
+  const normalizedText = text.toLowerCase();
+  const matchIndex = normalizedText.indexOf(normalizedQuery);
+
+  if (matchIndex < 0) {
+    return <>{text}</>;
+  }
+
+  const before = text.slice(0, matchIndex);
+  const match = text.slice(matchIndex, matchIndex + normalizedQuery.length);
+  const after = text.slice(matchIndex + normalizedQuery.length);
+
+  return (
+    <>
+      {before}
+      <mark className="rounded bg-orange-100 px-0.5 font-semibold text-[#1F2937]">{match}</mark>
+      {after}
+    </>
+  );
+}
+
 function buildVendorOrderMessage(order: OrderRecord): string {
   const itemSummary = order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", ");
   return [
@@ -50,8 +77,10 @@ export default function VendorOrdersPage() {
   const { profile } = useSession();
   const vendorId = profile?.vendorId;
   const [filter, setFilter] = useState<string>("active");
+  const [search, setSearch] = useState("");
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!vendorId) return;
@@ -78,15 +107,66 @@ export default function VendorOrdersPage() {
     return true;
   });
 
+  const searchTerm = search.trim().toLowerCase();
+  const hasSearch = searchTerm.length > 0;
+  const visibleOrders = filtered.filter((order) => {
+    if (!searchTerm) return true;
+
+    const itemText = order.items.map((item) => item.menu_item_name).join(" ").toLowerCase();
+    const phone = (order.student_phone ?? "").toLowerCase();
+    const pickupCode = (order.pickup_code ?? "").toLowerCase();
+    const name = (order.student_name ?? "").toLowerCase();
+    const orderId = String(order.id);
+
+    return (
+      phone.includes(searchTerm) ||
+      pickupCode.includes(searchTerm) ||
+      name.includes(searchTerm) ||
+      itemText.includes(searchTerm) ||
+      orderId.includes(searchTerm)
+    );
+  });
+
+  const updateOrderStatus = async (orderId: number, nextStatus: string) => {
+    const previous = orders;
+    setUpdatingOrderId(orderId);
+    setOrders((current) => current.map((order) => (order.id === orderId ? { ...order, status: nextStatus as OrderRecord["status"] } : order)));
+
+    try {
+      await client.updateOrderStatus(orderId, nextStatus);
+    } catch (error) {
+      setOrders(previous);
+      setLoadError(error instanceof Error ? error.message : "Failed to update order status");
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   return (
     <VendorLayout>
-      <div className="px-4 pt-4 md:px-6 lg:px-8">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold text-foreground">Orders</h1>
-          <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">Auto-refreshes</span>
+      <div className="bg-[#F8FAFC] px-4 pb-5 pt-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-[#1F2937] md:text-xl">Orders</h1>
+            <p className="text-xs text-slate-500">Track incoming orders and update progress quickly.</p>
+          </div>
+          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">Auto-refreshing</span>
         </div>
 
-        <div className="flex gap-2 mb-4 flex-wrap">
+        <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 md:p-4">
+          <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Search orders</label>
+          <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+            <span className="text-xs font-semibold text-slate-500">Phone or pickup code</span>
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search by phone, pickup code, name, item, or order number"
+              className="min-w-0 flex-1 bg-transparent text-sm text-[#1F2937] outline-none placeholder:text-slate-400"
+            />
+          </div>
+        </div>
+
+        <div className="mb-4 flex flex-wrap gap-2">
           {[
             { key: "active", label: "Active" },
             { key: "completed", label: "Completed" },
@@ -95,8 +175,8 @@ export default function VendorOrdersPage() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`px-4 py-2 rounded-full text-xs font-semibold transition-all ${
-                filter === key ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+              className={`rounded-md border px-3 py-2 text-xs font-semibold transition-all ${
+                filter === key ? "border-primary bg-primary text-white" : "border-slate-200 bg-white text-slate-600"
               }`}
             >
               {label}
@@ -104,73 +184,120 @@ export default function VendorOrdersPage() {
           ))}
         </div>
 
-        {loadError && <p className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
+        {loadError && <p className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{loadError}</p>}
 
-        <div className="grid gap-3 md:grid-cols-2">
-          {filtered.map((order) => {
-            const action = STATUS_ACTIONS[order.status];
-            return (
-              <div key={order.id} className="bg-white rounded-xl border border-border p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div>
-                    <p className="font-bold text-foreground">Order #{order.id}</p>
-                    <p className="text-xs text-muted-foreground">{order.student_name} - {formatDate(order.created_at)}</p>
-                  </div>
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${getStatusColor(order.status)}`}>
-                    {getStatusLabel(order.status)}
-                  </span>
-                </div>
-                <div className="bg-muted/50 rounded-lg p-2.5 mb-3">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="flex justify-between text-xs py-0.5">
-                      <span className="text-foreground">{item.menu_item_name}</span>
-                      <span className="text-muted-foreground">x{item.quantity}</span>
+        {visibleOrders.length === 0 ? (
+          <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center">
+            <p className="text-sm font-semibold text-[#1F2937]">No orders in this view</p>
+            <p className="mt-1 text-xs text-slate-500">Switch filters or adjust your search term.</p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+            <div className="hidden grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500 lg:grid">
+              <span>Order</span>
+              <span>Customer</span>
+              <span>Items</span>
+              <span>Price</span>
+              <span>Status</span>
+              <span className="text-right">Actions</span>
+            </div>
+
+            <div className="divide-y divide-slate-200">
+              {visibleOrders.map((order) => {
+                const action = STATUS_ACTIONS[order.status];
+                const isUpdating = updatingOrderId === order.id;
+                const isHighlightedBySearch = hasSearch;
+
+                return (
+                  <article
+                    key={order.id}
+                    className={`grid gap-2 px-4 py-3 lg:grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px] lg:items-center lg:gap-3 ${
+                      isHighlightedBySearch ? "bg-orange-50/60" : "bg-white"
+                    }`}
+                  >
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Order</p>
+                      <p className="text-sm font-bold text-[#1F2937]"><HighlightMatch text={`#${order.id}`} query={search} /></p>
+                      <p className="text-[11px] text-slate-500">{formatDate(order.created_at)}</p>
                     </div>
-                  ))}
-                  {order.notes && <p className="text-xs text-muted-foreground mt-1 border-t border-border pt-1">Note: {order.notes}</p>}
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">Pickup code: <strong className="text-foreground font-mono">{order.pickup_code}</strong></p>
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-primary">{formatKES(order.total_amount)}</span>
-                  <div className="flex items-center gap-2">
-                    {toWhatsAppPhone(order.student_phone) ? (
-                      <a
-                        href={`https://wa.me/${toWhatsAppPhone(order.student_phone)}?text=${encodeURIComponent(buildVendorOrderMessage(order))}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`Message ${order.student_name} on WhatsApp`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-[#25D366] text-white"
-                      >
-                        <WhatsAppIcon />
-                      </a>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        title="Customer phone number not available"
-                        aria-label="Customer phone number not available"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-muted text-muted-foreground"
-                      >
-                        <WhatsAppIcon />
-                      </button>
-                    )}
-                    {action && (
-                      <button
-                        onClick={async () => {
-                          await client.updateOrderStatus(order.id, action.next);
-                          if (vendorId) setOrders(await client.vendorOrders(vendorId));
-                        }}
-                        className={`px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 ${action.btnClass}`}
-                      >
-                        {action.label}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Customer</p>
+                      <p className="text-sm font-semibold text-[#1F2937]"><HighlightMatch text={order.student_name} query={search} /></p>
+                      <p className="text-[11px] text-slate-500">Pickup: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Items</p>
+                      <div className="flex flex-wrap gap-x-1 gap-y-1 text-sm text-[#1F2937]">
+                        {order.items.map((item, index) => {
+                          const itemLabel = `${item.menu_item_name} x${item.quantity}`;
+
+                          return (
+                            <span key={`${order.id}-${item.id}`} className="whitespace-nowrap">
+                              <HighlightMatch text={itemLabel} query={search} />
+                              {index < order.items.length - 1 ? <span className="text-slate-400">,</span> : null}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {order.notes ? <p className="truncate text-[11px] text-slate-500">Note: {order.notes}</p> : null}
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Price</p>
+                      <p className="text-sm font-bold text-primary">{formatKES(order.total_amount)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Status</p>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${getStatusColor(order.status)}`}>
+                        {getStatusLabel(order.status)}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 lg:justify-end">
+                      {toWhatsAppPhone(order.student_phone) ? (
+                        <a
+                          href={`https://wa.me/${toWhatsAppPhone(order.student_phone)}?text=${encodeURIComponent(buildVendorOrderMessage(order))}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Message ${order.student_name} on WhatsApp`}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[#25D366] text-white"
+                        >
+                          <WhatsAppIcon />
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          title="Customer phone number not available"
+                          aria-label="Customer phone number not available"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                        >
+                          <WhatsAppIcon />
+                        </button>
+                      )}
+                      {action ? (
+                        <button
+                          disabled={isUpdating}
+                          onClick={async () => {
+                            await updateOrderStatus(order.id, action.next);
+                          }}
+                          className={`rounded-md px-3 py-2 text-xs font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 ${action.btnClass}`}
+                        >
+                          {isUpdating ? "Updating..." : action.label}
+                        </button>
+                      ) : (
+                        <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">No action</span>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </VendorLayout>
   );

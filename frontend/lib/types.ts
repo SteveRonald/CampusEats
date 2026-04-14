@@ -91,6 +91,7 @@ export interface OrderItem {
   order_id: number;
   menu_item_id: number;
   menu_item_name: string;
+  menu_item_image_url?: string | null;
   quantity: number;
   unit_price: string;
 }

@@ -4,12 +4,12 @@ import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User } from "lucide-react";
+import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User, Bell } from "lucide-react";
 import clsx from "clsx";
 import { useCart, useSession } from "@/components/providers";
 import { Role } from "@/lib/types";
 
-function SessionActions() {
+function SessionActions({ hideLabels = false }: { hideLabels?: boolean }) {
   const { profile, logout } = useSession();
   const pathname = usePathname();
   const router = useRouter();
@@ -28,16 +28,14 @@ function SessionActions() {
   const profilePath = profile.role === "admin" ? "/admin/profile" : profile.role === "vendor" ? "/vendor/profile" : "/profile";
 
   return (
-    <div className="flex items-center gap-3 pl-2">
-      <div className="hidden sm:block rounded-full border border-orange-100 bg-orange-50 px-3 py-1 text-[11px] font-semibold text-primary">
-        {profile.role.toUpperCase()} - {profile.name}
-      </div>
+    <div className="flex shrink-0 items-center gap-2 pl-2">
+      <div className="hidden md:block px-1 text-[11px] font-semibold text-primary">{profile.name}</div>
       <Link
         href={profilePath}
         className="inline-flex items-center gap-1 px-1 py-2 text-[12px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
       >
         <User className="h-3.5 w-3.5" />
-        Profile
+        {hideLabels ? null : <span>Profile</span>}
       </Link>
       <button
         onClick={() => {
@@ -45,10 +43,10 @@ function SessionActions() {
           logout();
           router.replace(nextPath);
         }}
-        className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-3 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1 rounded-full border border-border bg-white px-2.5 py-2 text-[11px] font-semibold text-muted-foreground transition-colors hover:text-foreground md:px-3"
       >
         <LogOut className="h-3.5 w-3.5" />
-        Logout
+        {hideLabels ? null : <span>Logout</span>}
       </button>
     </div>
   );
@@ -172,21 +170,74 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
     return <LoadingShell />;
   }
 
+  const vendorLinks = [
+    { href: "/vendor/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: pathname === "/vendor/dashboard" },
+    { href: "/vendor/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/vendor/orders" },
+    { href: "/vendor/menu", label: "Menu", icon: <ChefHat className="h-4 w-4" />, active: pathname.startsWith("/vendor/menu") },
+    { href: "/vendor/profile", label: "Business Profile", icon: <User className="h-4 w-4" />, active: pathname === "/vendor/profile" }
+  ];
+
+  const pageTitle = pathname === "/vendor/orders" ? "Orders" : pathname.startsWith("/vendor/menu") ? "Menu" : pathname === "/vendor/profile" ? "Business Profile" : "Dashboard";
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col bg-white md:border-x md:border-border md:shadow-sm">
-        <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-white px-4 py-3 shadow-sm md:px-6">
-          <div className="flex items-center">
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col overflow-hidden bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
+        <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-white md:flex">
+          <div className="border-b border-border px-5 py-4">
             <Link href="/" aria-label="Go to home" className="flex items-center">
-              <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto md:h-9" />
+              <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto" />
             </Link>
           </div>
-          <SessionActions />
-        </header>
 
-        <main className="flex-1 pb-20 md:pb-24">{children}</main>
+          <div className="px-4 py-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Vendor Workspace</p>
+            <nav className="space-y-1">
+              {vendorLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={clsx(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                    link.active ? "bg-orange-50 text-primary" : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <span className={clsx("inline-flex h-7 w-7 items-center justify-center rounded-md", link.active ? "bg-orange-100" : "bg-muted")}>{link.icon}</span>
+                  <span>{link.label}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </aside>
 
-        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-6xl -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+        <div className="flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-50 border-b border-border bg-white">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+              <div className="flex items-center gap-3 md:hidden">
+                <Link href="/" aria-label="Go to home" className="flex items-center">
+                  <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto" />
+                </Link>
+              </div>
+
+              <div className="hidden flex-1 items-center gap-3 md:flex">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Vendor</p>
+                  <p className="text-sm font-semibold text-foreground">{pageTitle}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button type="button" aria-label="Notifications" className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground md:inline-flex">
+                  <Bell className="h-4 w-4" />
+                </button>
+                <SessionActions />
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 pb-20 md:pb-6">{children}</main>
+        </div>
+
+        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
           <div className="flex items-center justify-around py-2">
             <NavLink
               href="/vendor/dashboard"

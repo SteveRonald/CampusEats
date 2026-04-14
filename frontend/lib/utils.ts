@@ -1,5 +1,14 @@
 import { OrderStatus } from "@/lib/types";
 
+export function parseApiDate(value: string): Date {
+  if (!value) return new Date(value);
+
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const hasTimeZone = /(?:Z|[+-]\d{2}:\d{2})$/i.test(normalized);
+
+  return new Date(hasTimeZone ? normalized : `${normalized}Z`);
+}
+
 export function formatKES(value: number | string): string {
   const amount = typeof value === "string" ? Number(value) : value;
   return new Intl.NumberFormat("en-KE", {
@@ -14,8 +23,9 @@ export function formatDate(value: string): string {
     month: "short",
     day: "numeric",
     hour: "numeric",
-    minute: "2-digit"
-  }).format(new Date(value));
+    minute: "2-digit",
+    timeZone: "Africa/Nairobi"
+  }).format(parseApiDate(value));
 }
 
 export function getStatusColor(status: OrderStatus | string): string {
