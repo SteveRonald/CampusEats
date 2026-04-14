@@ -11,6 +11,7 @@ export default function HomePage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   const [items, setItems] = useState<MarketplaceItem[]>([]);
+  const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [popular, setPopular] = useState<MarketplaceItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [stats, setStats] = useState({ totalItems: 0, totalVendors: 0, avgPickupTime: 12 });
@@ -27,6 +28,7 @@ export default function HomePage() {
   const effectiveSearch = inferredCategory && !selectedCategory ? undefined : search || undefined;
 
   useEffect(() => {
+    setIsLoadingFeed(true);
     client
       .marketplaceFeed(effectiveSearch, effectiveCategory)
       .then((data) => {
@@ -37,6 +39,9 @@ export default function HomePage() {
       .catch(() => {
         setItems([]);
         setError("Could not load menu items. Check again later.");
+      })
+      .finally(() => {
+        setIsLoadingFeed(false);
       });
   }, [effectiveSearch, effectiveCategory]);
 
@@ -132,7 +137,12 @@ export default function HomePage() {
           <span className="text-xs text-muted-foreground">{items.length} items</span>
         </div>
 
-        {items.length === 0 ? (
+        {isLoadingFeed ? (
+          <div className="py-16 text-center">
+            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-200 border-t-primary" />
+            <p className="text-sm font-semibold text-foreground">Loading menu...</p>
+          </div>
+        ) : items.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">MEAL</div>
             <h3 className="font-bold text-foreground mb-1">No items found</h3>

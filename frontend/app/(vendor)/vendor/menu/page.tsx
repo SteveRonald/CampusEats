@@ -31,15 +31,29 @@ export default function VendorMenuPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (vendorId) client.vendorMenu(vendorId).then(setMenu);
+    if (!vendorId) return;
+
+    client
+      .vendorMenu(vendorId)
+      .then((items) => {
+        setMenu(items);
+        setErrorMessage(null);
+      })
+      .catch((error) => {
+        setErrorMessage(error instanceof Error ? error.message : "Failed to fetch menu items");
+      });
   }, [vendorId]);
 
   const editingItem = useMemo(() => menu.find((item) => item.id === editId) ?? null, [editId, menu]);
 
   const reload = async () => {
-    if (vendorId) setMenu(await client.vendorMenu(vendorId));
+    if (!vendorId) return;
+    const items = await client.vendorMenu(vendorId);
+    setMenu(items);
+    setErrorMessage(null);
   };
 
   const resetForm = () => {
@@ -76,6 +90,7 @@ export default function VendorMenuPage() {
   const submitForm = async () => {
     if (!vendorId) return;
     setLoading(true);
+    setErrorMessage(null);
 
     try {
       if (editId) {
@@ -99,6 +114,8 @@ export default function VendorMenuPage() {
 
       resetForm();
       await reload();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to save menu item");
     } finally {
       setLoading(false);
     }
@@ -110,7 +127,7 @@ export default function VendorMenuPage() {
 
   return (
     <VendorLayout>
-      <div className="bg-[#F8FAFC] px-4 pt-4 space-y-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
+      <div className="bg-[#F8FAFC] px-4 pb-6 pt-4 space-y-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
         <div>
           <h1 className="mb-1 text-lg font-bold text-[#1F2937] md:text-xl">Menu</h1>
           <p className="text-xs text-slate-500 md:text-sm">Manage your live catalog and pricing for student orders.</p>
@@ -141,7 +158,7 @@ export default function VendorMenuPage() {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <div>
                   <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Price</label>
                   <input
@@ -177,31 +194,28 @@ export default function VendorMenuPage() {
                 </div>
               ) : null}
             </div>
-            <button
-              onClick={submitForm}
-              disabled={loading}
-              className="mt-3 w-full rounded-md bg-primary py-2.5 text-sm font-bold text-white"
-            >
-              {loading ? "Saving..." : editId ? "Save changes" : "Add item"}
-            </button>
-            {editId ? (
+            <div className="mt-4 flex flex-col gap-2 sm:items-center">
               <button
-                type="button"
-                onClick={() => resetForm()}
-                className="mt-2 w-full rounded-md border border-slate-200 bg-white py-2.5 text-sm font-bold text-[#1F2937]"
+                onClick={submitForm}
+                disabled={loading}
+                className="w-full rounded-md bg-primary py-2.5 text-sm font-bold text-white sm:w-[220px]"
               >
-                Cancel edit
+                {loading ? "Saving..." : editId ? "Save changes" : "Add item"}
               </button>
-            ) : null}
+              {editId ? (
+                <button
+                  type="button"
+                  onClick={() => resetForm()}
+                  className="w-full rounded-md border border-slate-200 bg-white py-2.5 text-sm font-bold text-[#1F2937] sm:w-[220px]"
+                >
+                  Cancel edit
+                </button>
+              ) : null}
+            </div>
           </div>
 
           <div className="space-y-2 lg:col-span-8">
-            <div className="hidden grid-cols-[minmax(0,1.2fr)_110px_120px_220px] gap-3 rounded-md border border-slate-200 bg-white px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500 md:grid">
-              <span>Item</span>
-              <span>Category</span>
-              <span>Price</span>
-              <span className="text-right">Actions</span>
-            </div>
+            {errorMessage ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{errorMessage}</p> : null}
 
             {menu.length === 0 ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-white px-4 py-10 text-center">
@@ -210,56 +224,96 @@ export default function VendorMenuPage() {
               </div>
             ) : null}
 
-            {menu.map((item) => (
-              <div key={item.id} className="rounded-md border border-slate-200 bg-white p-4 md:grid md:grid-cols-[minmax(0,1.2fr)_110px_120px_220px] md:items-center md:gap-3">
-                <div className="mb-2 md:mb-0">
-                  <p className="text-sm font-bold text-[#1F2937]">{item.name}</p>
-                  <p className="text-xs text-slate-500">{item.description || "No description"}</p>
-                  <p className="mt-1 text-[11px] text-slate-500 md:hidden">{item.category}</p>
-                </div>
+            {menu.length > 0 ? (
+              <div className="overflow-x-auto rounded-md border border-slate-200 bg-white [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch]">
+                <div className="min-w-[700px] md:min-w-[780px] lg:min-w-[860px]">
+                  <div className="grid grid-cols-[80px_minmax(200px,1.2fr)_100px_110px_190px] gap-3 border-b border-slate-200 bg-slate-50 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500 md:grid-cols-[84px_minmax(230px,1.2fr)_110px_120px_220px] md:px-4 lg:grid-cols-[90px_minmax(260px,1.2fr)_130px_140px_240px]">
+                    <span>Image</span>
+                    <span>Item</span>
+                    <span>Category</span>
+                    <span>Price</span>
+                    <span className="text-right">Actions</span>
+                  </div>
 
-                <p className="hidden text-sm font-medium text-slate-600 md:block">{item.category}</p>
+                  <div className="divide-y divide-slate-200">
+                    {menu.map((item) => (
+                      <div key={item.id} className="grid grid-cols-[80px_minmax(200px,1.2fr)_100px_110px_190px] items-center gap-3 px-3 py-3 md:grid-cols-[84px_minmax(230px,1.2fr)_110px_120px_220px] md:px-4 lg:grid-cols-[90px_minmax(260px,1.2fr)_130px_140px_240px]">
+                        <div>
+                          {item.image_url ? (
+                            <img
+                              src={item.image_url}
+                              alt={item.name}
+                              className="h-12 w-12 rounded-md border border-slate-200 object-cover"
+                              onError={(event) => {
+                                event.currentTarget.src = "/favicon.png";
+                              }}
+                            />
+                          ) : (
+                            <div className="h-12 w-12 rounded-md border border-slate-200 bg-slate-100" aria-hidden="true" />
+                          )}
+                        </div>
 
-                <div className="mb-2 md:mb-0">
-                  <p className="text-sm font-bold text-primary">{formatKES(item.price)}</p>
-                  <p className="text-[11px] text-slate-500">{item.is_available ? "Published" : "Unpublished"}</p>
-                </div>
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold text-[#1F2937]">{item.name}</p>
+                          <p className="truncate text-xs text-slate-500">{item.description || "No description"}</p>
+                        </div>
 
-                <div className="flex gap-2 md:justify-end">
-                  <button
-                    onClick={() => startEdit(item)}
-                    className="rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await client.updateMenuItem(item.id, {
-                        isAvailable: !item.is_available,
-                        name: item.name,
-                        description: item.description,
-                        price: item.price,
-                        category: item.category,
-                        imageUrl: item.image_url
-                      });
-                      await reload();
-                    }}
-                    className="rounded-md border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700"
-                  >
-                    {item.is_available ? "Unpublish" : "Publish"}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await client.deleteMenuItem(item.id);
-                      await reload();
-                    }}
-                    className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700"
-                  >
-                    Delete
-                  </button>
+                        <p className="text-sm font-medium text-slate-600">{item.category}</p>
+
+                        <div>
+                          <p className="text-sm font-bold text-primary">{formatKES(item.price)}</p>
+                          <p className="text-[11px] text-slate-500">{item.is_available ? "Published" : "Unpublished"}</p>
+                        </div>
+
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            onClick={() => startEdit(item)}
+                            className="rounded-md border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-700 md:px-3"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                setErrorMessage(null);
+                                await client.updateMenuItem(item.id, {
+                                  isAvailable: !item.is_available,
+                                  name: item.name,
+                                  description: item.description,
+                                  price: item.price,
+                                  category: item.category,
+                                  imageUrl: item.image_url
+                                });
+                                await reload();
+                              } catch (error) {
+                                setErrorMessage(error instanceof Error ? error.message : "Failed to update menu item");
+                              }
+                            }}
+                            className="rounded-md border border-slate-200 px-2.5 py-2 text-xs font-semibold text-slate-700 md:px-3"
+                          >
+                            {item.is_available ? "Unpublish" : "Publish"}
+                          </button>
+                          <button
+                            onClick={async () => {
+                              try {
+                                setErrorMessage(null);
+                                await client.deleteMenuItem(item.id);
+                                await reload();
+                              } catch (error) {
+                                setErrorMessage(error instanceof Error ? error.message : "Failed to delete menu item");
+                              }
+                            }}
+                            className="rounded-md border border-red-200 bg-red-50 px-2.5 py-2 text-xs font-semibold text-red-700 md:px-3"
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
-            ))}
+            ) : null}
           </div>
         </div>
       </div>

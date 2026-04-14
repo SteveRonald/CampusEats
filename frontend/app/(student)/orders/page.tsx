@@ -52,10 +52,15 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!profile) return;
+    if (profile.role === "vendor") {
+      router.replace("/vendor/orders");
+      return;
+    }
+
     client.studentOrders().then(setOrders);
     const interval = setInterval(() => client.studentOrders().then(setOrders), 10000);
     return () => clearInterval(interval);
-  }, [profile]);
+  }, [profile, router]);
 
   if (!profile) {
     return (

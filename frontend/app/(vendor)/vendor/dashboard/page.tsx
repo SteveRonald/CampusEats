@@ -180,8 +180,8 @@ export default function VendorDashboardPage() {
                 <p className="mt-1 text-xs text-slate-500">Incoming orders will appear here immediately.</p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-md border border-slate-200 bg-white">
-                <div className="min-w-[900px]">
+              <div className="overflow-x-auto rounded-md border border-slate-200 bg-white [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch]">
+                <div className="min-w-[760px] md:min-w-[860px] lg:min-w-[900px]">
                   <div className="grid grid-cols-[104px_150px_minmax(240px,1fr)_132px_100px_150px] gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
                     <span>Order</span>
                     <span>Customer</span>
@@ -255,7 +255,7 @@ export default function VendorDashboardPage() {
                                   type="button"
                                   disabled={isUpdating}
                                   onClick={() => updateOrderStatus(order.id, "preparing")}
-                                  className="min-w-[132px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
+                                  className="min-w-[118px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
                                 >
                                   {isUpdating ? "Updating..." : "Accept"}
                                 </button>
@@ -266,7 +266,7 @@ export default function VendorDashboardPage() {
                                   <button
                                     type="button"
                                     disabled
-                                    className="min-w-[132px] rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-blue-700"
+                                    className="min-w-[118px] rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-blue-700"
                                   >
                                     Preparing
                                   </button>
@@ -274,7 +274,7 @@ export default function VendorDashboardPage() {
                                     type="button"
                                     disabled={isUpdating}
                                     onClick={() => updateOrderStatus(order.id, "ready")}
-                                    className="min-w-[132px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="min-w-[118px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
                                   >
                                     {isUpdating ? "Updating..." : "Mark ready"}
                                   </button>
@@ -286,7 +286,7 @@ export default function VendorDashboardPage() {
                                   <button
                                     type="button"
                                     disabled
-                                    className="min-w-[132px] rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-green-700"
+                                    className="min-w-[118px] rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-green-700"
                                   >
                                     Ready
                                   </button>
@@ -294,7 +294,7 @@ export default function VendorDashboardPage() {
                                     type="button"
                                     disabled={isUpdating}
                                     onClick={() => updateOrderStatus(order.id, "completed")}
-                                    className="min-w-[132px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="min-w-[118px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
                                   >
                                     {isUpdating ? "Updating..." : "Complete"}
                                   </button>

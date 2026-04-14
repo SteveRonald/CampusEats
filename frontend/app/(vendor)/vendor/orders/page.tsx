@@ -145,18 +145,17 @@ export default function VendorOrdersPage() {
   return (
     <VendorLayout>
       <div className="bg-[#F8FAFC] px-4 pb-5 pt-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
-        <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="mb-4">
           <div>
             <h1 className="text-lg font-bold text-[#1F2937] md:text-xl">Orders</h1>
             <p className="text-xs text-slate-500">Track incoming orders and update progress quickly.</p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">Auto-refreshing</span>
         </div>
 
         <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 md:p-4">
           <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">Search orders</label>
           <div className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-            <span className="text-xs font-semibold text-slate-500">Phone or pickup code</span>
+            <span className="hidden text-xs font-semibold text-slate-500 sm:inline">Phone or pickup code</span>
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -192,109 +191,106 @@ export default function VendorOrdersPage() {
             <p className="mt-1 text-xs text-slate-500">Switch filters or adjust your search term.</p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
-            <div className="hidden grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px] gap-3 border-b border-slate-200 bg-slate-50 px-4 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500 lg:grid">
-              <span>Order</span>
-              <span>Customer</span>
-              <span>Items</span>
-              <span>Price</span>
-              <span>Status</span>
-              <span className="text-right">Actions</span>
-            </div>
+          <div className="overflow-x-auto rounded-lg border border-slate-200 bg-white [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch]">
+            <div className="min-w-[760px] md:min-w-[860px] lg:min-w-[920px]">
+              <div className="grid grid-cols-[110px_150px_minmax(220px,1fr)_100px_100px_180px] gap-3 border-b border-slate-200 bg-slate-50 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500 md:grid-cols-[115px_165px_minmax(240px,1fr)_110px_110px_195px] md:px-4 lg:grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px]">
+                <span>Order</span>
+                <span>Customer</span>
+                <span>Items</span>
+                <span>Price</span>
+                <span>Status</span>
+                <span className="text-right">Actions</span>
+              </div>
 
-            <div className="divide-y divide-slate-200">
-              {visibleOrders.map((order) => {
-                const action = STATUS_ACTIONS[order.status];
-                const isUpdating = updatingOrderId === order.id;
-                const isHighlightedBySearch = hasSearch;
+              <div className="divide-y divide-slate-200">
+                {visibleOrders.map((order) => {
+                  const action = STATUS_ACTIONS[order.status];
+                  const isUpdating = updatingOrderId === order.id;
+                  const isHighlightedBySearch = hasSearch;
 
-                return (
-                  <article
-                    key={order.id}
-                    className={`grid gap-2 px-4 py-3 lg:grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px] lg:items-center lg:gap-3 ${
-                      isHighlightedBySearch ? "bg-orange-50/60" : "bg-white"
-                    }`}
-                  >
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Order</p>
-                      <p className="text-sm font-bold text-[#1F2937]"><HighlightMatch text={`#${order.id}`} query={search} /></p>
-                      <p className="text-[11px] text-slate-500">{formatDate(order.created_at)}</p>
-                    </div>
-
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Customer</p>
-                      <p className="text-sm font-semibold text-[#1F2937]"><HighlightMatch text={order.student_name} query={search} /></p>
-                      <p className="text-[11px] text-slate-500">Pickup: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
-                    </div>
-
-                    <div className="min-w-0">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Items</p>
-                      <div className="flex flex-wrap gap-x-1 gap-y-1 text-sm text-[#1F2937]">
-                        {order.items.map((item, index) => {
-                          const itemLabel = `${item.menu_item_name} x${item.quantity}`;
-
-                          return (
-                            <span key={`${order.id}-${item.id}`} className="whitespace-nowrap">
-                              <HighlightMatch text={itemLabel} query={search} />
-                              {index < order.items.length - 1 ? <span className="text-slate-400">,</span> : null}
-                            </span>
-                          );
-                        })}
+                  return (
+                    <article
+                      key={order.id}
+                      className={`grid grid-cols-[110px_150px_minmax(220px,1fr)_100px_100px_180px] items-center gap-3 px-3 py-3 md:grid-cols-[115px_165px_minmax(240px,1fr)_110px_110px_195px] md:px-4 lg:grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px] ${
+                        isHighlightedBySearch ? "bg-orange-50/60" : "bg-white"
+                      }`}
+                    >
+                      <div>
+                        <p className="text-sm font-bold text-[#1F2937]"><HighlightMatch text={`#${order.id}`} query={search} /></p>
+                        <p className="text-[11px] text-slate-500">{formatDate(order.created_at)}</p>
                       </div>
-                      {order.notes ? <p className="truncate text-[11px] text-slate-500">Note: {order.notes}</p> : null}
-                    </div>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Price</p>
-                      <p className="text-sm font-bold text-primary">{formatKES(order.total_amount)}</p>
-                    </div>
+                      <div>
+                        <p className="text-sm font-semibold text-[#1F2937]"><HighlightMatch text={order.student_name} query={search} /></p>
+                        <p className="text-[11px] text-slate-500">Pickup: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
+                      </div>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-slate-500 lg:hidden">Status</p>
-                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${getStatusColor(order.status)}`}>
-                        {getStatusLabel(order.status)}
-                      </span>
-                    </div>
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap gap-x-1 gap-y-1 text-sm text-[#1F2937]">
+                          {order.items.map((item, index) => {
+                            const itemLabel = `${item.menu_item_name} x${item.quantity}`;
 
-                    <div className="flex items-center gap-2 lg:justify-end">
-                      {toWhatsAppPhone(order.student_phone) ? (
-                        <a
-                          href={`https://wa.me/${toWhatsAppPhone(order.student_phone)}?text=${encodeURIComponent(buildVendorOrderMessage(order))}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          aria-label={`Message ${order.student_name} on WhatsApp`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[#25D366] text-white"
-                        >
-                          <WhatsAppIcon />
-                        </a>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          title="Customer phone number not available"
-                          aria-label="Customer phone number not available"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground"
-                        >
-                          <WhatsAppIcon />
-                        </button>
-                      )}
-                      {action ? (
-                        <button
-                          disabled={isUpdating}
-                          onClick={async () => {
-                            await updateOrderStatus(order.id, action.next);
-                          }}
-                          className={`rounded-md px-3 py-2 text-xs font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 ${action.btnClass}`}
-                        >
-                          {isUpdating ? "Updating..." : action.label}
-                        </button>
-                      ) : (
-                        <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">No action</span>
-                      )}
-                    </div>
-                  </article>
-                );
-              })}
+                            return (
+                              <span key={`${order.id}-${item.id}`} className="whitespace-nowrap">
+                                <HighlightMatch text={itemLabel} query={search} />
+                                {index < order.items.length - 1 ? <span className="text-slate-400">,</span> : null}
+                              </span>
+                            );
+                          })}
+                        </div>
+                        {order.notes ? <p className="truncate text-[11px] text-slate-500">Note: {order.notes}</p> : null}
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-bold text-primary">{formatKES(order.total_amount)}</p>
+                      </div>
+
+                      <div>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-bold ${getStatusColor(order.status)}`}>
+                          {getStatusLabel(order.status)}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-2 justify-end">
+                        {toWhatsAppPhone(order.student_phone) ? (
+                          <a
+                            href={`https://wa.me/${toWhatsAppPhone(order.student_phone)}?text=${encodeURIComponent(buildVendorOrderMessage(order))}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Message ${order.student_name} on WhatsApp`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-[#25D366] text-white"
+                          >
+                            <WhatsAppIcon />
+                          </a>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled
+                            title="Customer phone number not available"
+                            aria-label="Customer phone number not available"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                          >
+                            <WhatsAppIcon />
+                          </button>
+                        )}
+                        {action ? (
+                          <button
+                            disabled={isUpdating}
+                            onClick={async () => {
+                              await updateOrderStatus(order.id, action.next);
+                            }}
+                            className={`rounded-md px-3 py-2 text-xs font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 ${action.btnClass}`}
+                          >
+                            {isUpdating ? "Updating..." : action.label}
+                          </button>
+                        ) : (
+                          <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">No action</span>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </div>
           </div>
         )}

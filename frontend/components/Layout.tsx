@@ -152,6 +152,13 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
             />
             {isGuest ? (
               <NavLink href="/auth" active={pathname === "/auth"} icon={<User className="h-5 w-5" />} label="Login" />
+            ) : profile.role === "vendor" ? (
+              <NavLink
+                href="/vendor/orders"
+                active={pathname.startsWith("/vendor/orders")}
+                icon={<ClipboardList className="h-5 w-5" />}
+                label="Orders"
+              />
             ) : (
               <NavLink href="/orders" active={pathname.startsWith("/orders")} icon={<ClipboardList className="h-5 w-5" />} label="Orders" />
             )}
@@ -182,7 +189,7 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
       <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col overflow-hidden bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
-        <aside className="hidden w-64 shrink-0 flex-col border-r border-border bg-white md:flex">
+        <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-white md:flex lg:w-64">
           <div className="border-b border-border px-5 py-4">
             <Link href="/" aria-label="Go to home" className="flex items-center">
               <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto" />
@@ -262,22 +269,73 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     return <LoadingShell />;
   }
 
+  const adminLinks = [
+    { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: pathname === "/admin/dashboard" },
+    { href: "/admin/vendors", label: "Vendors", icon: <Store className="h-4 w-4" />, active: pathname === "/admin/vendors" },
+    { href: "/admin/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/admin/orders" }
+  ];
+
+  const pageTitle = pathname === "/admin/vendors" ? "Vendors" : pathname === "/admin/orders" ? "Orders" : "Dashboard";
+
   return (
-    <div className="min-h-screen bg-background">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col bg-white md:border-x md:border-border md:shadow-sm">
-        <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-white px-4 py-3 shadow-sm md:px-6">
-          <div className="flex flex-col items-start">
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col overflow-hidden bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
+        <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-white md:flex lg:w-64">
+          <div className="border-b border-border px-5 py-4">
             <Link href="/" aria-label="Go to home" className="flex items-center">
-              <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto md:h-9" />
+              <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto" />
             </Link>
-            <span className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">Admin Panel</span>
           </div>
-          <SessionActions />
-        </header>
 
-        <main className="flex-1 px-4 pb-20 md:px-6 lg:px-8">{children}</main>
+          <div className="px-4 py-4">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Admin Workspace</p>
+            <nav className="space-y-1">
+              {adminLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={clsx(
+                    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                    link.active ? "bg-orange-50 text-primary" : "text-foreground hover:bg-muted"
+                  )}
+                >
+                  <span className={clsx("inline-flex h-7 w-7 items-center justify-center rounded-md", link.active ? "bg-orange-100" : "bg-muted")}>{link.icon}</span>
+                  <span>{link.label}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </aside>
 
-        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-6xl -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+        <div className="flex min-h-screen flex-1 flex-col">
+          <header className="sticky top-0 z-50 border-b border-border bg-white">
+            <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
+              <div className="flex items-center gap-3 md:hidden">
+                <Link href="/" aria-label="Go to home" className="flex items-center">
+                  <Image src="/logo.png" alt="CampusEats" width={132} height={36} className="h-8 w-auto" />
+                </Link>
+              </div>
+
+              <div className="hidden flex-1 items-center gap-3 md:flex">
+                <div>
+                  <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted-foreground">Admin</p>
+                  <p className="text-sm font-semibold text-foreground">{pageTitle}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button type="button" aria-label="Notifications" className="hidden h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground md:inline-flex">
+                  <Bell className="h-4 w-4" />
+                </button>
+                <SessionActions />
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 px-4 pb-20 md:px-6 md:pb-6 lg:px-8">{children}</main>
+        </div>
+
+        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
           <div className="flex items-center justify-around py-2">
             <NavLink
               href="/admin/dashboard"
