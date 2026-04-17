@@ -3,11 +3,17 @@ import {
   ForgotPasswordPayload,
   LoginPayload,
   MenuItemRecord,
+  Hostel,
+  ServiceArea,
   OrderRecord,
+  DeliveryDetailsPayload,
   RegisterPayload,
   UpdateProfilePayload,
   UpdateVendorProfilePayload,
   VendorBusinessProfile,
+  VendorDeliveryLocation,
+  VendorDeliveryLocationRecommendation,
+  VendorServiceArea,
   VendorRecord,
   MarketplaceItem
 } from "@/lib/types";
@@ -44,7 +50,7 @@ async function api<T>(path: string, init?: RequestInit): Promise<T> {
       cache: "no-store"
     });
   } catch (_error) {
-    throw new Error("Failed to connect to API");
+    throw new Error("Unable to reach CampusEats right now. Check your connection and try again.");
   }
 
   if (!response.ok) {
@@ -70,21 +76,49 @@ export const client = {
       "/api/auth/me"
     ),
   updateProfile: (payload: UpdateProfilePayload) => api<{ profile: AuthResponse["profile"] }>("/api/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
-  marketplaceFeed: (search?: string, category?: string) =>
+  marketplaceFeed: (search?: string, category?: string, serviceAreaId?: number) =>
     api<{ items: MarketplaceItem[]; stats: { totalItems: number; totalVendors: number; avgPickupTime: number } }>(
       `/api/orders/marketplace/feed?${new URLSearchParams(
-        Object.entries({ search: search ?? "", category: category ?? "" }).filter(([, value]) => value)
+        Object.entries({ search: search ?? "", category: category ?? "", serviceAreaId: serviceAreaId ? String(serviceAreaId) : "" }).filter(([, value]) => value)
       ).toString()}`
     ),
   popularMeals: () => api<MarketplaceItem[]>("/api/orders/marketplace/popular"),
   categories: () => api<string[]>("/api/orders/marketplace/categories"),
-  checkout: (payload: object) => api<OrderRecord>("/api/payments/checkout", { method: "POST", body: JSON.stringify(payload) }),
+  checkout: (payload: {
+    vendorId: number;
+    studentName?: string;
+    notes?: string;
+    items: Array<{ menuItemId: number; quantity: number }>;
+    orderType?: "dine_in" | "delivery";
+    deliveryDetails?: DeliveryDetailsPayload | null;
+  }) => api<OrderRecord>("/api/payments/checkout", { method: "POST", body: JSON.stringify(payload) }),
   studentOrders: () => api<OrderRecord[]>("/api/orders"),
-  order: (orderId: number) => api<OrderRecord>(`/api/orders/${orderId}`),
+  order: (orderId: number | string) => api<OrderRecord>(`/api/orders/${orderId}`),
   updateOrderStatus: (orderId: number, status: string) =>
     api<OrderRecord>(`/api/orders/${orderId}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
   vendorOrders: (vendorId: number) => api<OrderRecord[]>(`/api/vendors/${vendorId}/orders`),
   vendorProfile: (vendorId: number) => api<VendorBusinessProfile>(`/api/vendors/${vendorId}/profile`),
+  vendorServiceAreas: (vendorId: number) => api<VendorServiceArea[]>(`/api/vendors/${vendorId}/service-areas`),
+  updateVendorServiceAreas: (vendorId: number, serviceAreaIds: number[]) =>
+    api<VendorServiceArea[]>(`/api/vendors/${vendorId}/service-areas`, { method: "PUT", body: JSON.stringify({ serviceAreaIds }) }),
+  vendorDeliveryLocations: (vendorId: number, serviceAreaId?: number) =>
+    api<VendorDeliveryLocation[]>(
+      `/api/vendors/${vendorId}/delivery-locations${serviceAreaId ? `?serviceAreaId=${serviceAreaId}` : ""}`
+    ),
+  vendorDeliveryLocationRecommendations: (vendorId: number) =>
+    api<VendorDeliveryLocationRecommendation[]>(`/api/vendors/${vendorId}/delivery-location-recommendations`),
+  acceptVendorDeliveryLocationRecommendation: (recommendationId: number, serviceAreaId: number) =>
+    api<{ success: boolean; acceptedLocationId: number }>(`/api/vendors/delivery-location-recommendations/${recommendationId}/accept`, {
+      method: "POST",
+      body: JSON.stringify({ serviceAreaId })
+    }),
+  ignoreVendorDeliveryLocationRecommendation: (recommendationId: number) =>
+    api<{ success: boolean }>(`/api/vendors/delivery-location-recommendations/${recommendationId}/ignore`, { method: "POST" }),
+  createVendorDeliveryLocation: (vendorId: number, payload: { serviceAreaId: number; label: string; location: string; isDefault?: boolean }) =>
+    api<VendorDeliveryLocation>(`/api/vendors/${vendorId}/delivery-locations`, { method: "POST", body: JSON.stringify(payload) }),
+  updateVendorDeliveryLocation: (locationId: number, payload: { serviceAreaId: number; label: string; location: string; isDefault?: boolean }) =>
+    api<VendorDeliveryLocation>(`/api/vendors/delivery-locations/${locationId}`, { method: "PATCH", body: JSON.stringify(payload) }),
+  deleteVendorDeliveryLocation: (locationId: number) => api<{ success: boolean }>(`/api/vendors/delivery-locations/${locationId}`, { method: "DELETE" }),
   updateVendorProfile: (vendorId: number, payload: UpdateVendorProfilePayload) =>
     api<VendorBusinessProfile>(`/api/vendors/${vendorId}/profile`, { method: "PATCH", body: JSON.stringify(payload) }),
   vendorOverview: (vendorId: number) =>
@@ -97,6 +131,18 @@ export const client = {
   updateMenuItem: (itemId: number, payload: object) =>
     api<MenuItemRecord>(`/api/vendors/menu/${itemId}`, { method: "PUT", body: JSON.stringify(payload) }),
   deleteMenuItem: (itemId: number) => api<{ success: boolean }>(`/api/vendors/menu/${itemId}`, { method: "DELETE" }),
+  serviceAreas: () => api<ServiceArea[]>('/api/locations/service-areas'),
+  hostels: () => api<Hostel[]>('/api/locations/hostels'),
+  adminServiceAreas: () => api<ServiceArea[]>('/api/admin/service-areas'),
+  createServiceArea: (name: string) => api<ServiceArea>('/api/admin/service-areas', { method: 'POST', body: JSON.stringify({ name }) }),
+  updateServiceArea: (id: number, payload: { name: string; isActive?: boolean }) =>
+    api<ServiceArea>(`/api/admin/service-areas/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteServiceArea: (id: number) => api<{ success: boolean }>(`/api/admin/service-areas/${id}`, { method: 'DELETE' }),
+  adminHostels: () => api<Hostel[]>('/api/admin/hostels'),
+  createHostel: (name: string) => api<Hostel>('/api/admin/hostels', { method: 'POST', body: JSON.stringify({ name }) }),
+  updateHostel: (id: number, payload: { name: string; isActive?: boolean }) =>
+    api<Hostel>(`/api/admin/hostels/${id}`, { method: 'PATCH', body: JSON.stringify(payload) }),
+  deleteHostel: (id: number) => api<{ success: boolean }>(`/api/admin/hostels/${id}`, { method: 'DELETE' }),
   vendors: () => api<VendorRecord[]>("/api/vendors"),
   toggleVendor: (vendorId: number) => api<VendorRecord>(`/api/vendors/${vendorId}/toggle`, { method: "PATCH" }),
   adminSummary: () =>

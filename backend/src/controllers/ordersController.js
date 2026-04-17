@@ -3,7 +3,7 @@ import { hydrateOrders } from "./helpers.js";
 
 export async function getMarketplaceFeed(req, res) {
   try {
-    const { category, search } = req.query;
+    const { category, search, serviceAreaId } = req.query;
     const values = [];
     const conditions = ["m.is_available = true", "v.is_active = true"];
 
@@ -17,6 +17,11 @@ export async function getMarketplaceFeed(req, res) {
       conditions.push(`m.name ILIKE $${values.length}`);
     }
 
+    if (serviceAreaId) {
+      values.push(Number(serviceAreaId));
+      conditions.push(`EXISTS (SELECT 1 FROM vendor_service_areas vsa WHERE vsa.vendor_id = v.id AND vsa.service_area_id = $${values.length})`);
+    }
+
     const itemsResult = await query(
       `SELECT m.id, m.vendor_id, m.name, m.description, m.price, m.category, m.image_url, m.is_available,
               m.order_count, v.stall_name AS vendor_name, v.location AS vendor_location,
@@ -28,14 +33,21 @@ export async function getMarketplaceFeed(req, res) {
       values
     );
 
-    const statsResult = await query(
-      `SELECT
-         (SELECT COUNT(*) FROM menu_items WHERE is_available = true)::int AS "totalItems",
-         (SELECT COUNT(*) FROM vendors WHERE is_active = true)::int AS "totalVendors",
-         COALESCE((SELECT ROUND(AVG((pickup_time_min + pickup_time_max) / 2.0)) FROM vendors WHERE is_active = true), 12)::int AS "avgPickupTime"`
-    );
+    const uniqueVendors = new Set(itemsResult.rows.map((item) => item.vendor_id));
+    const avgPickupTime = itemsResult.rows.length
+      ? Math.round(
+          itemsResult.rows.reduce((sum, item) => sum + ((Number(item.pickup_time_min) + Number(item.pickup_time_max)) / 2), 0) / itemsResult.rows.length
+        )
+      : 12;
 
-    res.json({ items: itemsResult.rows, stats: statsResult.rows[0] });
+    res.json({
+      items: itemsResult.rows,
+      stats: {
+        totalItems: itemsResult.rows.length,
+        totalVendors: uniqueVendors.size,
+        avgPickupTime
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch marketplace feed" });
   }
@@ -77,10 +89,13 @@ export async function listStudentOrders(req, res) {
   try {
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone,
+              h.name AS hostel_name, sa.name AS service_area_name
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
        INNER JOIN users u ON u.id = v.user_id
+       LEFT JOIN hostels h ON h.id = o.hostel_id
+       LEFT JOIN service_areas sa ON sa.id = o.service_area_id
        WHERE o.student_id = $1
        ORDER BY o.created_at DESC`,
       [req.user.id]
@@ -93,14 +108,20 @@ export async function listStudentOrders(req, res) {
 
 export async function getOrder(req, res) {
   try {
+    const orderKey = String(req.params.id);
+    const isNumericId = /^\d+$/.test(orderKey);
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone,
+              h.name AS hostel_name, sa.name AS service_area_name
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
        INNER JOIN users u ON u.id = v.user_id
-       WHERE o.id = $1`,
-      [Number(req.params.id)]
+       LEFT JOIN hostels h ON h.id = o.hostel_id
+       LEFT JOIN service_areas sa ON sa.id = o.service_area_id
+       WHERE ${req.user.role === "student" ? "o.public_id = $1" : isNumericId ? "o.id = $1 OR o.public_id = $1" : "o.public_id = $1"}
+       LIMIT 1`,
+      [req.user.role === "student" ? orderKey : isNumericId ? Number(orderKey) : orderKey]
     );
 
     if (!result.rows.length) {
@@ -157,10 +178,13 @@ export async function updateOrderStatus(req, res) {
 
     const fullOrder = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone,
+              h.name AS hostel_name, sa.name AS service_area_name
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
        INNER JOIN users u ON u.id = v.user_id
+       LEFT JOIN hostels h ON h.id = o.hostel_id
+       LEFT JOIN service_areas sa ON sa.id = o.service_area_id
        WHERE o.id = $1`,
       [Number(req.params.id)]
     );
@@ -193,10 +217,15 @@ export async function getAdminOrders(_req, res) {
   try {
     const result = await query(
       `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone
+              v.pickup_time_min, v.pickup_time_max, u.phone AS vendor_phone,
+              s.phone AS student_phone,
+              h.name AS hostel_name, sa.name AS service_area_name
        FROM orders o
        INNER JOIN vendors v ON v.id = o.vendor_id
        INNER JOIN users u ON u.id = v.user_id
+       LEFT JOIN users s ON s.id = o.student_id
+       LEFT JOIN hostels h ON h.id = o.hostel_id
+       LEFT JOIN service_areas sa ON sa.id = o.service_area_id
        ORDER BY o.created_at DESC`
     );
     res.json(await hydrateOrders(result.rows));

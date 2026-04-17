@@ -6,7 +6,7 @@ import { VendorLayout } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
-import { formatKES, formatDate, getStatusLabel, parseApiDate } from "@/lib/utils";
+import { formatKES, formatOrderDateTime, getStatusLabel, parseApiDate } from "@/lib/utils";
 
 const ACTIVE_STATUSES = ["paid", "preparing", "ready"] as const;
 
@@ -108,7 +108,7 @@ export default function VendorDashboardPage() {
 
   const recentActivity = [...orders]
     .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-    .slice(0, 6);
+    .slice(0, 5);
 
   const updateOrderStatus = async (orderId: number, nextStatus: string) => {
     const previous = orders;
@@ -204,7 +204,7 @@ export default function VendorDashboardPage() {
                           <div className="grid grid-cols-[104px_150px_minmax(240px,1fr)_132px_100px_150px] items-center gap-2 px-3 py-2">
                             <div className="min-w-0">
                               <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">Order #{order.id}</p>
-                              <p className="text-[11px] text-slate-500">{formatDate(order.created_at)}</p>
+                              <p className="text-[11px] text-slate-500">{formatOrderDateTime(order.created_at)}</p>
                               <p className={`text-xs font-bold ${urgency.tone}`}>{getWaitingLabel(minutesSince)}</p>
                               {isNewOrder ? (
                                 <span className="mt-1 inline-flex rounded-sm border border-[#FF6B00]/40 bg-orange-50 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-[#FF6B00]">
@@ -251,14 +251,23 @@ export default function VendorDashboardPage() {
 
                             <div className="min-w-0 justify-self-end">
                               {order.status === "paid" ? (
-                                <button
-                                  type="button"
-                                  disabled={isUpdating}
-                                  onClick={() => updateOrderStatus(order.id, "preparing")}
-                                  className="min-w-[118px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
-                                >
-                                  {isUpdating ? "Updating..." : "Accept"}
-                                </button>
+                                <div className="space-y-1.5">
+                                  <button
+                                    type="button"
+                                    disabled
+                                    className="min-w-[104px] rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-700"
+                                  >
+                                    Current: Paid
+                                  </button>
+                                  <button
+                                    type="button"
+                                    disabled={isUpdating}
+                                    onClick={() => updateOrderStatus(order.id, "preparing")}
+                                    className="min-w-[104px] rounded-md bg-[#FF6B00] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
+                                  >
+                                    {isUpdating ? "Updating..." : "Next: Accept"}
+                                  </button>
+                                </div>
                               ) : null}
 
                               {order.status === "preparing" ? (
@@ -266,17 +275,17 @@ export default function VendorDashboardPage() {
                                   <button
                                     type="button"
                                     disabled
-                                    className="min-w-[118px] rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-blue-700"
+                                    className="min-w-[104px] rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-blue-700"
                                   >
-                                    Preparing
+                                    Current: Preparing
                                   </button>
                                   <button
                                     type="button"
                                     disabled={isUpdating}
                                     onClick={() => updateOrderStatus(order.id, "ready")}
-                                    className="min-w-[118px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="min-w-[104px] rounded-md bg-[#FF6B00] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
                                   >
-                                    {isUpdating ? "Updating..." : "Mark ready"}
+                                    {isUpdating ? "Updating..." : "Next: Mark ready"}
                                   </button>
                                 </div>
                               ) : null}
@@ -286,17 +295,17 @@ export default function VendorDashboardPage() {
                                   <button
                                     type="button"
                                     disabled
-                                    className="min-w-[118px] rounded-md border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-green-700"
+                                    className="min-w-[104px] rounded-md border border-green-200 bg-green-50 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-green-700"
                                   >
-                                    Ready
+                                    Current: Ready
                                   </button>
                                   <button
                                     type="button"
                                     disabled={isUpdating}
                                     onClick={() => updateOrderStatus(order.id, "completed")}
-                                    className="min-w-[118px] rounded-md bg-[#FF6B00] px-3 py-2 text-xs font-bold uppercase tracking-[0.08em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
+                                    className="min-w-[104px] rounded-md bg-[#FF6B00] px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-white transition active:translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-70"
                                   >
-                                    {isUpdating ? "Updating..." : "Complete"}
+                                    {isUpdating ? "Updating..." : "Next: Complete"}
                                   </button>
                                 </div>
                               ) : null}
@@ -362,7 +371,7 @@ export default function VendorDashboardPage() {
                         <td className="px-4 py-3 font-semibold text-[#1F2937]">#{order.id}</td>
                         <td className="px-4 py-3 text-[#1F2937]">{getCustomerType(order.student_name)}</td>
                         <td className="px-4 py-3 font-bold text-[#FF6B00]">{formatKES(order.total_amount)}</td>
-                        <td className="px-4 py-3 text-slate-500">{formatDate(order.created_at)}</td>
+                        <td className="px-4 py-3 text-slate-500">{formatOrderDateTime(order.created_at)}</td>
                       </tr>
                     ))}
                   </tbody>

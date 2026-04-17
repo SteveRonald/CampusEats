@@ -5,7 +5,7 @@ import { VendorLayout } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
-import { formatKES, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { formatKES, formatOrderDateTime, getStatusColor, getStatusLabel } from "@/lib/utils";
 
 function toWhatsAppPhone(phone: string | null | undefined): string | null {
   if (!phone) return null;
@@ -217,12 +217,17 @@ export default function VendorOrdersPage() {
                     >
                       <div>
                         <p className="text-sm font-bold text-[#1F2937]"><HighlightMatch text={`#${order.id}`} query={search} /></p>
-                        <p className="text-[11px] text-slate-500">{formatDate(order.created_at)}</p>
+                        <p className="text-[11px] text-slate-500">{formatOrderDateTime(order.created_at)}</p>
                       </div>
 
                       <div>
                         <p className="text-sm font-semibold text-[#1F2937]"><HighlightMatch text={order.student_name} query={search} /></p>
-                        <p className="text-[11px] text-slate-500">Pickup: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
+                        <p className="text-[11px] text-slate-500">Pickup Code: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
+                        {order.delivery_details?.mode === "other" ? (
+                          <p className="mt-0.5 text-[11px] text-amber-700">
+                            Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}
+                          </p>
+                        ) : null}
                       </div>
 
                       <div className="min-w-0">
@@ -274,15 +279,20 @@ export default function VendorOrdersPage() {
                           </button>
                         )}
                         {action ? (
-                          <button
-                            disabled={isUpdating}
-                            onClick={async () => {
-                              await updateOrderStatus(order.id, action.next);
-                            }}
-                            className={`rounded-md px-3 py-2 text-xs font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 ${action.btnClass}`}
-                          >
-                            {isUpdating ? "Updating..." : action.label}
-                          </button>
+                          <div className="space-y-1.5 text-right">
+                            <span className="inline-flex min-w-[104px] items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] text-slate-700">
+                              Current: {getStatusLabel(order.status)}
+                            </span>
+                            <button
+                              disabled={isUpdating}
+                              onClick={async () => {
+                                await updateOrderStatus(order.id, action.next);
+                              }}
+                              className={`min-w-[104px] rounded-md px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-[0.06em] transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-70 ${action.btnClass}`}
+                            >
+                              {isUpdating ? "Updating..." : `Next: ${action.label}`}
+                            </button>
+                          </div>
                         ) : (
                           <span className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-500">No action</span>
                         )}

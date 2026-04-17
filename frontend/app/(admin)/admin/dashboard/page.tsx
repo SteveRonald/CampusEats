@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
             <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Admin Dashboard</h1>
             <p className="text-sm text-slate-500">Track platform health, vendor operations, and order activity.</p>
           </div>
-          <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">Live every 15s</span>
+          <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">Auto-refreshing every 15 seconds</span>
         </div>
 
         {error ? <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
@@ -105,6 +105,20 @@ export default function AdminDashboardPage() {
                   >
                     Review all orders
                     <ClipboardList className="h-4 w-4 text-primary" />
+                  </Link>
+                  <Link
+                    href="/admin/service-areas"
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-[#1F2937] transition hover:border-orange-200 hover:bg-orange-50"
+                  >
+                    Manage service areas
+                    <ArrowUpRight className="h-4 w-4 text-primary" />
+                  </Link>
+                  <Link
+                    href="/admin/hostels"
+                    className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-3 text-sm font-semibold text-[#1F2937] transition hover:border-orange-200 hover:bg-orange-50"
+                  >
+                    Manage hostels
+                    <ArrowUpRight className="h-4 w-4 text-primary" />
                   </Link>
                 </div>
                 <p className="mt-3 text-xs text-slate-500">CampusEats commission model is preserved: 10% platform share, vendor payout flow managed by payment pipeline.</p>

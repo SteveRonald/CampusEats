@@ -10,6 +10,30 @@ VALUES
   (1, 2, 'Mama Njeri Kitchen', 'Fast Kenyan lunches between classes.', '0711000002', 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1200&q=80', 'Moi University Main Campus', 10, 15, TRUE)
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO service_areas (id, name, is_active)
+VALUES
+  (1, 'Moi University Main Campus', TRUE),
+  (2, 'Kesses Town', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO hostels (id, name, is_active)
+VALUES
+  (1, 'Hostel A', TRUE),
+  (2, 'Hostel B', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO vendor_service_areas (id, vendor_id, service_area_id)
+VALUES
+  (1, 1, 1),
+  (2, 1, 2)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO vendor_delivery_locations (id, vendor_id, service_area_id, label, location, is_default)
+VALUES
+  (1, 1, 1, 'Campus Gate Pickup', 'Moi University Main Campus Gate', TRUE),
+  (2, 1, 2, 'Kesses Town Pickup', 'Kesses Town Stage', TRUE)
+ON CONFLICT (id) DO NOTHING;
+
 INSERT INTO menu_items (id, vendor_id, name, description, price, category, image_url, is_available, order_count)
 VALUES
   (1, 1, 'Pilau Bowl', 'Spiced rice with kachumbari and beef.', 180.00, 'Rice', 'https://images.unsplash.com/photo-1512058564366-18510be2db19?auto=format&fit=crop&w=1200&q=80', TRUE, 12),
@@ -20,4 +44,8 @@ ON CONFLICT (id) DO NOTHING;
 
 SELECT setval('users_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM users), 1), TRUE);
 SELECT setval('vendors_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM vendors), 1), TRUE);
+SELECT setval('service_areas_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM service_areas), 1), TRUE);
+SELECT setval('hostels_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM hostels), 1), TRUE);
+SELECT setval('vendor_service_areas_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM vendor_service_areas), 1), TRUE);
+SELECT setval('vendor_delivery_locations_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM vendor_delivery_locations), 1), TRUE);
 SELECT setval('menu_items_id_seq', GREATEST((SELECT COALESCE(MAX(id), 1) FROM menu_items), 1), TRUE);

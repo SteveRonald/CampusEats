@@ -10,10 +10,12 @@ import { MarketplaceItem } from "@/lib/types";
 export default function HomePage() {
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
+  const [selectedServiceArea, setSelectedServiceArea] = useState<number | undefined>(undefined);
   const [items, setItems] = useState<MarketplaceItem[]>([]);
   const [isLoadingFeed, setIsLoadingFeed] = useState(true);
   const [popular, setPopular] = useState<MarketplaceItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
+  const [serviceAreas, setServiceAreas] = useState<{ id: number; name: string }[]>([]);
   const [stats, setStats] = useState({ totalItems: 0, totalVendors: 0, avgPickupTime: 12 });
   const [error, setError] = useState<string | null>(null);
 
@@ -30,7 +32,7 @@ export default function HomePage() {
   useEffect(() => {
     setIsLoadingFeed(true);
     client
-      .marketplaceFeed(effectiveSearch, effectiveCategory)
+      .marketplaceFeed(effectiveSearch, effectiveCategory, selectedServiceArea)
       .then((data) => {
         setItems(data.items);
         setStats(data.stats);
@@ -43,11 +45,12 @@ export default function HomePage() {
       .finally(() => {
         setIsLoadingFeed(false);
       });
-  }, [effectiveSearch, effectiveCategory]);
+  }, [effectiveSearch, effectiveCategory, selectedServiceArea]);
 
   useEffect(() => {
     client.popularMeals().then(setPopular).catch(() => setPopular([]));
     client.categories().then(setCategories).catch(() => setCategories([]));
+    client.serviceAreas().then(setServiceAreas).catch(() => setServiceAreas([]));
   }, []);
 
   return (
@@ -92,6 +95,40 @@ export default function HomePage() {
               {category}
             </button>
           ))}
+        </div>
+      )}
+
+      {serviceAreas.length > 0 && (
+        <div className="px-4 py-3 bg-white border-b border-border md:px-6 lg:px-8">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <h3 className="text-xs font-bold uppercase tracking-[0.1em] text-slate-500">Delivery area</h3>
+            {selectedServiceArea ? (
+              <button className="text-xs font-semibold text-primary" onClick={() => setSelectedServiceArea(undefined)}>
+                Clear
+              </button>
+            ) : null}
+          </div>
+          <div className="overflow-x-auto flex gap-2 scrollbar-none -mx-1 px-1">
+            <button
+              onClick={() => setSelectedServiceArea(undefined)}
+              className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                !selectedServiceArea ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+              }`}
+            >
+              All areas
+            </button>
+            {serviceAreas.map((area) => (
+              <button
+                key={area.id}
+                onClick={() => setSelectedServiceArea(selectedServiceArea === area.id ? undefined : area.id)}
+                className={`flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                  selectedServiceArea === area.id ? "bg-primary text-white" : "bg-muted text-muted-foreground"
+                }`}
+              >
+                {area.name}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 

@@ -1,7 +1,12 @@
+import crypto from "node:crypto";
 import { query } from "../db/client.js";
 
 export function buildPickupCode() {
   return Math.random().toString(36).slice(2, 7).toUpperCase();
+}
+
+export function buildOrderPublicId() {
+  return `ord_${crypto.randomBytes(8).toString("hex")}`;
 }
 
 export async function hydrateOrders(orderRows) {

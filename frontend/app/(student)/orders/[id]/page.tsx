@@ -6,7 +6,7 @@ import { ArrowLeft, Clock, CheckCircle, Package, ChefHat } from "lucide-react";
 import { StudentLayout } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
-import { formatKES, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { formatKES, formatOrderDateTime, getStatusColor, getStatusLabel } from "@/lib/utils";
 
 const STATUS_STEPS = ["paid", "preparing", "ready", "completed"] as const;
 
@@ -14,16 +14,79 @@ export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const [order, setOrder] = useState<OrderRecord | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const orderId = Number(params.id);
-    client.order(orderId).then(setOrder);
-    const interval = setInterval(() => client.order(orderId).then(setOrder), 5000);
-    return () => clearInterval(interval);
+    let active = true;
+    const orderId = params.id;
+    setOrder(null);
+    setError(null);
+    setLoading(true);
+
+    const load = async () => {
+      try {
+        const nextOrder = await client.order(orderId);
+        if (!active) return;
+        setOrder(nextOrder);
+        setError(null);
+      } catch (loadError) {
+        if (!active) return;
+        setOrder(null);
+        setError(loadError instanceof Error ? loadError.message : "Failed to load order");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+    const interval = setInterval(load, 5000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, [params.id]);
 
+  if (loading) {
+    return (
+      <StudentLayout>
+        <div className="flex min-h-[60vh] items-center justify-center px-4 pt-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-8 text-center shadow-sm">
+            <div className="mx-auto mb-3 h-8 w-8 animate-spin rounded-full border-2 border-orange-200 border-t-primary" />
+            <p className="text-sm font-semibold text-[#1F2937]">Loading order details...</p>
+            <p className="mt-1 text-xs text-slate-500">Please wait while we fetch the latest status.</p>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
+  if (error) {
+    const isAccessIssue = error.toLowerCase().includes("forbidden") || error.toLowerCase().includes("not found");
+
+    return (
+      <StudentLayout>
+        <div className="flex min-h-[60vh] items-center justify-center px-4 pt-4">
+          <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white px-4 py-8 text-center shadow-sm">
+            <h2 className="text-lg font-bold text-[#1F2937]">{isAccessIssue ? "Order unavailable" : "Could not load order"}</h2>
+            <p className="mt-2 text-sm text-slate-500">
+              {isAccessIssue
+                ? "This order does not belong to your account or no longer exists."
+                : error}
+            </p>
+            <button onClick={() => router.push("/orders")} className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-white">
+              Back to orders
+            </button>
+          </div>
+        </div>
+      </StudentLayout>
+    );
+  }
+
   if (!order) {
-    return <StudentLayout><div className="px-4 pt-4">Loading order...</div></StudentLayout>;
+    return null;
   }
 
   const currentStep = STATUS_STEPS.indexOf(order.status as (typeof STATUS_STEPS)[number]);
@@ -88,6 +151,30 @@ export default function OrderDetailPage() {
         </div>
 
         <div className="bg-white rounded-xl border border-border p-4 mb-4">
+          <h3 className="font-semibold text-sm text-foreground mb-2">Fulfillment</h3>
+          <div className="space-y-2 text-sm">
+            <p className="text-foreground">
+              Type: <span className="font-semibold">{order.order_type === "delivery" ? "Delivery" : "Dine-in"}</span>
+            </p>
+            {order.pickup_location ? (
+              <p className="text-foreground">
+                Location: <span className="font-semibold">{order.pickup_location}</span>
+              </p>
+            ) : null}
+            {order.delivery_details?.mode === "hostel" ? (
+              <p className="text-muted-foreground">
+                Hostel: {order.delivery_details.hostelName ?? order.hostel_name ?? "-"} • Room {order.delivery_details.roomNumber ?? order.room_number ?? "-"}
+              </p>
+            ) : null}
+            {order.delivery_details?.mode === "off_campus" ? (
+              <p className="text-muted-foreground">
+                Area: {order.delivery_details.serviceAreaName ?? order.service_area_name ?? "-"}
+              </p>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-border p-4 mb-4">
           <h3 className="font-semibold text-sm text-foreground mb-3">Items</h3>
           <div className="space-y-2">
             {order.items.map((item) => (
@@ -109,7 +196,7 @@ export default function OrderDetailPage() {
         </div>
 
         <p className="text-xs text-center text-muted-foreground mb-6">
-          Ordered {formatDate(order.created_at)}
+          Ordered {formatOrderDateTime(order.created_at)}
         </p>
       </div>
     </StudentLayout>

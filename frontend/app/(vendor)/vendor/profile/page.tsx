@@ -8,7 +8,7 @@ import { VendorBusinessProfile } from "@/lib/types";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-slate-200 bg-white px-4 py-2.5">
+    <div className="flex flex-col gap-1 rounded-md border border-slate-200 bg-white px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">{label}</span>
       <span className="text-sm font-semibold text-[#1F2937]">{value}</span>
     </div>
@@ -305,11 +305,10 @@ export default function VendorProfilePage() {
               <Row label="Business status" value={business ? (business.is_active ? "Active" : "Paused") : "-"} />
               <Row label="Role" value={profile.role} />
               <Row label="Account ID" value={profile.publicId ?? "-"} />
-              <Row label="Vendor ID" value={String(business?.id ?? profile.vendorId ?? "-")} />
             </>
           )}
 
-          {editing ? <p className="px-1 text-xs text-slate-500">Role, Account ID, and Vendor ID are read-only.</p> : null}
+          {editing ? <p className="px-1 text-xs text-slate-500">Role and Account ID are read-only.</p> : null}
 
           <div className="pt-2 flex gap-2">
             {editing ? (

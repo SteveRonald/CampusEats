@@ -6,6 +6,9 @@ import vendorsRouter from "./routes/vendors.js";
 import paymentsRouter from "./routes/payments.js";
 import webhookRouter from "./routes/webhook.js";
 import authRouter from "./routes/auth.js";
+import locationsRouter from "./routes/locations.js";
+import adminLocationsRouter from "./routes/adminLocations.js";
+import { ensureDeliverySchema } from "./db/bootstrap.js";
 
 dotenv.config();
 
@@ -37,12 +40,16 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/locations", locationsRouter);
+app.use("/api/admin", adminLocationsRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/vendors", vendorsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/webhook", webhookRouter);
 
 const port = Number(process.env.PORT ?? 4000);
+
+await ensureDeliverySchema();
 
 app.listen(port, () => {
   console.log(`CampusEats backend running on http://localhost:${port}`);

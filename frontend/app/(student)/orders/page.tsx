@@ -8,7 +8,7 @@ import { StudentLayout } from "@/components/Layout";
 import { useCart, useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
-import { formatKES, formatDate, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { formatKES, formatDate, formatOrderDateTime, getStatusColor, getStatusLabel } from "@/lib/utils";
 
 function toWhatsAppPhone(phone: string | null): string | null {
   if (!phone) return null;
@@ -100,7 +100,7 @@ export default function OrdersPage() {
           <div className="space-y-3">
             {orders.map((order) => (
               <div key={order.id} className="bg-white rounded-xl border border-border p-4">
-                <button onClick={() => router.push(`/orders/${order.id}`)} className="w-full text-left">
+                <button onClick={() => router.push(`/orders/${order.public_id ?? order.id}`)} className="w-full text-left">
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <div>
                       <p className="font-semibold text-sm text-foreground">{order.vendor_name}</p>
@@ -117,7 +117,7 @@ export default function OrdersPage() {
                     </div>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <Clock className="w-3 h-3" />
-                      {formatDate(order.created_at)}
+                      {formatOrderDateTime(order.created_at)}
                     </div>
                   </div>
                 </button>

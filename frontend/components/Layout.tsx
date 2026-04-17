@@ -181,14 +181,24 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
     { href: "/vendor/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: pathname === "/vendor/dashboard" },
     { href: "/vendor/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/vendor/orders" },
     { href: "/vendor/menu", label: "Menu", icon: <ChefHat className="h-4 w-4" />, active: pathname.startsWith("/vendor/menu") },
+    { href: "/vendor/pickup-locations", label: "Delivery Locations", icon: <Home className="h-4 w-4" />, active: pathname.startsWith("/vendor/pickup-locations") },
     { href: "/vendor/profile", label: "Business Profile", icon: <User className="h-4 w-4" />, active: pathname === "/vendor/profile" }
   ];
 
-  const pageTitle = pathname === "/vendor/orders" ? "Orders" : pathname.startsWith("/vendor/menu") ? "Menu" : pathname === "/vendor/profile" ? "Business Profile" : "Dashboard";
+  const pageTitle =
+    pathname === "/vendor/orders"
+      ? "Orders"
+      : pathname.startsWith("/vendor/menu")
+        ? "Menu"
+        : pathname.startsWith("/vendor/pickup-locations")
+          ? "Delivery Locations"
+          : pathname === "/vendor/profile"
+            ? "Business Profile"
+            : "Dashboard";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col overflow-hidden bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col bg-[#F8FAFC] md:flex-row">
         <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-white md:flex lg:w-64">
           <div className="border-b border-border px-5 py-4">
             <Link href="/" aria-label="Go to home" className="flex items-center">
@@ -216,7 +226,7 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-50 border-b border-border bg-white">
             <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
               <div className="flex items-center gap-3 md:hidden">
@@ -254,6 +264,12 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
             />
             <NavLink href="/vendor/orders" active={pathname === "/vendor/orders"} icon={<ClipboardList className="h-5 w-5" />} label="Orders" />
             <NavLink href="/vendor/menu" active={pathname.startsWith("/vendor/menu")} icon={<ChefHat className="h-5 w-5" />} label="Menu" />
+            <NavLink
+              href="/vendor/pickup-locations"
+              active={pathname.startsWith("/vendor/pickup-locations")}
+              icon={<Home className="h-5 w-5" />}
+              label="Delivery"
+            />
           </div>
         </nav>
       </div>
@@ -272,14 +288,25 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const adminLinks = [
     { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: pathname === "/admin/dashboard" },
     { href: "/admin/vendors", label: "Vendors", icon: <Store className="h-4 w-4" />, active: pathname === "/admin/vendors" },
-    { href: "/admin/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/admin/orders" }
+    { href: "/admin/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/admin/orders" },
+    { href: "/admin/service-areas", label: "Service Areas", icon: <Home className="h-4 w-4" />, active: pathname.startsWith("/admin/service-areas") },
+    { href: "/admin/hostels", label: "Hostels", icon: <User className="h-4 w-4" />, active: pathname.startsWith("/admin/hostels") }
   ];
 
-  const pageTitle = pathname === "/admin/vendors" ? "Vendors" : pathname === "/admin/orders" ? "Orders" : "Dashboard";
+  const pageTitle =
+    pathname === "/admin/vendors"
+      ? "Vendors"
+      : pathname === "/admin/orders"
+        ? "Orders"
+        : pathname.startsWith("/admin/service-areas")
+          ? "Service Areas"
+          : pathname.startsWith("/admin/hostels")
+            ? "Hostels"
+            : "Dashboard";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col overflow-hidden bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
         <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-white md:flex lg:w-64">
           <div className="border-b border-border px-5 py-4">
             <Link href="/" aria-label="Go to home" className="flex items-center">
@@ -345,6 +372,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             />
             <NavLink href="/admin/vendors" active={pathname === "/admin/vendors"} icon={<Store className="h-5 w-5" />} label="Vendors" />
             <NavLink href="/admin/orders" active={pathname === "/admin/orders"} icon={<ClipboardList className="h-5 w-5" />} label="Orders" />
+            <NavLink href="/admin/service-areas" active={pathname.startsWith("/admin/service-areas")} icon={<Home className="h-5 w-5" />} label="Areas" />
           </div>
         </nav>
       </div>

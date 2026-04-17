@@ -1,4 +1,6 @@
 export type Role = "student" | "vendor" | "admin";
+export type OrderType = "dine_in" | "delivery";
+export type DeliveryMode = "hostel" | "off_campus" | "other";
 
 export type OrderStatus = "pending" | "paid" | "preparing" | "ready" | "completed";
 
@@ -40,6 +42,20 @@ export interface UpdateVendorProfilePayload {
   pickupTimeMax: number;
 }
 
+export interface DeliveryDetailsPayload {
+  mode: DeliveryMode;
+  hostelId?: number;
+  roomNumber?: string;
+  serviceAreaId?: number;
+  deliveryLocationId?: number;
+  otherLocationName?: string;
+  otherLocationDetails?: string;
+  hostelName?: string;
+  serviceAreaName?: string;
+  deliveryLocationLabel?: string;
+  deliveryLocation?: string;
+}
+
 export interface RegisterPayload {
   role: "student" | "vendor";
   name: string;
@@ -76,6 +92,48 @@ export interface MarketplaceItem {
   pickup_time_max: number;
 }
 
+export interface ServiceArea {
+  id: number;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Hostel {
+  id: number;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface VendorDeliveryLocation {
+  id: number;
+  vendor_id: number;
+  service_area_id: number | null;
+  service_area_name: string | null;
+  label: string;
+  location: string;
+  is_default: boolean;
+}
+
+export interface VendorDeliveryLocationRecommendation {
+  id: number;
+  vendor_id: number;
+  source_order_id: number | null;
+  service_area_id: number | null;
+  service_area_name: string | null;
+  place_name: string;
+  place_details: string;
+  status: "pending" | "accepted" | "ignored";
+  accepted_location_id: number | null;
+  reviewed_at: string | null;
+  created_at: string;
+}
+
+export interface VendorServiceArea extends ServiceArea {
+  selected: boolean;
+}
+
 export interface CartItem {
   menuItemId: number;
   vendorId: number;
@@ -98,13 +156,22 @@ export interface OrderItem {
 
 export interface OrderRecord {
   id: number;
+  public_id?: string;
   student_id: number | null;
   vendor_id: number;
   student_name: string;
+  order_type: OrderType;
   student_phone?: string | null;
   status: OrderStatus;
   total_amount: string;
   pickup_code: string;
+  pickup_location: string | null;
+  delivery_details: DeliveryDetailsPayload | null;
+  hostel_id: number | null;
+  hostel_name?: string | null;
+  room_number: string | null;
+  service_area_id: number | null;
+  service_area_name?: string | null;
   notes: string | null;
   payment_reference: string | null;
   created_at: string;
