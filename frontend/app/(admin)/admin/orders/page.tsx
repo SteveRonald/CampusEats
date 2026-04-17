@@ -6,7 +6,7 @@ import { AdminLayout } from "@/components/Layout";
 import { useToast } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
-import { formatKES, getStatusColor, getStatusLabel } from "@/lib/utils";
+import { formatKES, formatOrderDateTime, getStatusColor, getStatusLabel } from "@/lib/utils";
 
 function toWhatsAppPhone(phone: string | null | undefined): string | null {
   if (!phone) return null;
@@ -145,6 +145,7 @@ export default function AdminOrdersPage() {
                   <div className="mt-3 grid gap-2 text-sm">
                     <div>
                       <p className="font-semibold text-[#1F2937]">{order.student_name}</p>
+                      <p className="text-[11px] text-slate-500">{formatOrderDateTime(order.created_at)}</p>
                       <p className="text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
                       {order.delivery_details?.mode === "other" ? (
                         <p className="text-[11px] text-amber-700">Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}</p>
@@ -206,8 +207,9 @@ export default function AdminOrdersPage() {
 
             <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white [scrollbar-gutter:stable] [-webkit-overflow-scrolling:touch] xl:block">
               <div className="min-w-[1120px]">
-                <div className="grid grid-cols-[84px_170px_150px_minmax(220px,1fr)_110px_180px] gap-2 border-b border-slate-200 bg-slate-50 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
+                <div className="grid grid-cols-[84px_170px_150px_150px_minmax(220px,1fr)_110px_180px] gap-2 border-b border-slate-200 bg-slate-50 px-3 py-3 text-[11px] font-bold uppercase tracking-[0.1em] text-slate-500">
                   <span>Order</span>
+                  <span>Date/Time</span>
                   <span>Vendor</span>
                   <span>Student</span>
                   <span>Items</span>
@@ -217,8 +219,10 @@ export default function AdminOrdersPage() {
 
                 <div className="divide-y divide-slate-200">
                   {visibleOrders.map((order) => (
-                    <article key={order.id} className="grid grid-cols-[84px_170px_150px_minmax(220px,1fr)_110px_180px] items-center gap-2 px-3 py-3">
+                    <article key={order.id} className="grid grid-cols-[84px_170px_150px_150px_minmax(220px,1fr)_110px_180px] items-center gap-2 px-3 py-3">
                       <p className="text-sm font-black text-[#1F2937]">#{order.id}</p>
+
+                      <p className="text-xs text-slate-500">{formatOrderDateTime(order.created_at)}</p>
 
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#1F2937]">{order.vendor_name}</p>
