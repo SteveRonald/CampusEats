@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User, Bell } from "lucide-react";
 import clsx from "clsx";
 import { useCart, useSession } from "@/components/providers";
+import { client } from "@/lib/api";
 import { Role } from "@/lib/types";
 
 function SessionActions({ hideLabels = false }: { hideLabels?: boolean }) {
@@ -172,6 +173,20 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
 export function VendorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, isLoading } = useRoleGuard("vendor");
+  const [hasDeliveryLocation, setHasDeliveryLocation] = useState(true);
+
+  useEffect(() => {
+    if (!profile || profile.role !== "vendor" || !profile.vendorId) return;
+
+    client
+      .vendorDeliveryLocations(profile.vendorId)
+      .then((locations) => {
+        setHasDeliveryLocation(locations.length > 0);
+      })
+      .catch(() => {
+        setHasDeliveryLocation(true);
+      });
+  }, [profile]);
 
   if (isLoading || !profile || profile.role !== "vendor") {
     return <LoadingShell />;
@@ -198,7 +213,7 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col bg-[#F8FAFC] md:flex-row">
+      <div className="mx-auto flex min-h-screen w-full max-w-[1320px] flex-col bg-[#F8FAFC] md:flex-row md:border-x md:border-border md:shadow-sm">
         <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-white md:flex lg:w-64">
           <div className="border-b border-border px-5 py-4">
             <Link href="/" aria-label="Go to home" className="flex items-center">
@@ -251,7 +266,20 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 pb-20 md:pb-6">{children}</main>
+          <main className="flex-1 pb-20 md:pb-6">
+            {!hasDeliveryLocation && !pathname.startsWith("/vendor/pickup-locations") ? (
+              <div className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 md:mx-6 lg:mx-8">
+                <p className="text-sm font-bold text-amber-900">Setup required before vendor actions</p>
+                <p className="mt-1 text-sm text-amber-800">
+                  Add at least one delivery location to continue with order updates and menu changes.
+                  <Link href="/vendor/pickup-locations" className="ml-1 font-bold underline decoration-amber-700 underline-offset-2">
+                    Go to Delivery Locations
+                  </Link>
+                </p>
+              </div>
+            ) : null}
+            {children}
+          </main>
         </div>
 
         <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
@@ -334,7 +362,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         </aside>
 
-        <div className="flex min-h-screen flex-1 flex-col">
+        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           <header className="sticky top-0 z-50 border-b border-border bg-white">
             <div className="flex items-center justify-between gap-3 px-4 py-3 md:px-6">
               <div className="flex items-center gap-3 md:hidden">

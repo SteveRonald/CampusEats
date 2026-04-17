@@ -1,6 +1,18 @@
 import { query } from "../db/client.js";
 import { hydrateOrders } from "./helpers.js";
 
+async function vendorHasDeliveryLocation(vendorId) {
+  const result = await query(
+    `SELECT 1
+     FROM vendor_delivery_locations
+     WHERE vendor_id = $1
+     LIMIT 1`,
+    [vendorId]
+  );
+
+  return result.rows.length > 0;
+}
+
 export async function getMarketplaceFeed(req, res) {
   try {
     const { category, search, serviceAreaId } = req.query;
@@ -158,6 +170,13 @@ export async function updateOrderStatus(req, res) {
 
     if (req.user.role === "vendor" && existing.rows[0].vendor_id !== req.user.vendorId) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (req.user.role === "vendor") {
+      const hasDeliveryLocation = await vendorHasDeliveryLocation(req.user.vendorId);
+      if (!hasDeliveryLocation) {
+        return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });
+      }
     }
 
     if (!["vendor", "admin"].includes(req.user.role)) {

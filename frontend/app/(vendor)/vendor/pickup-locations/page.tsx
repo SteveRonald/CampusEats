@@ -423,7 +423,7 @@ export default function VendorPickupLocationsPage() {
         <section className="rounded-2xl border border-slate-200 bg-white p-4 md:p-5">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-bold text-[#1F2937]">Suggested from student "Other" places</h2>
+              <h2 className="text-lg font-bold text-[#1F2937]">Suggested from customer "Other" places</h2>
               <p className="text-sm text-slate-500">Accept to add as a delivery location, or ignore to hide from this list.</p>
             </div>
             <div className="text-sm font-semibold text-slate-500">{recommendations.length} pending</div>
@@ -440,7 +440,7 @@ export default function VendorPickupLocationsPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-bold text-[#1F2937]">{recommendation.place_name}</p>
-                      <p className="text-xs text-slate-500">Order suggestion #{recommendation.source_order_id ?? "-"}</p>
+                      <p className="text-xs text-slate-500">Customer suggestion #{recommendation.source_order_id ?? "-"}</p>
                     </div>
                     {recommendation.service_area_name ? (
                       <span className="rounded-full bg-orange-100 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.08em] text-[#FF6B00]">

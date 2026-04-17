@@ -1,6 +1,18 @@
 import { query } from "../db/client.js";
 import { hydrateOrders } from "./helpers.js";
 
+async function ensureVendorDeliveryLocationConfigured(vendorId) {
+  const result = await query(
+    `SELECT 1
+     FROM vendor_delivery_locations
+     WHERE vendor_id = $1
+     LIMIT 1`,
+    [vendorId]
+  );
+
+  return result.rows.length > 0;
+}
+
 export async function listVendors(_req, res) {
   try {
     const result = await query(`SELECT * FROM vendors ORDER BY created_at DESC`);
@@ -533,6 +545,13 @@ export async function createVendorMenuItem(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    if (req.user.role === "vendor") {
+      const configured = await ensureVendorDeliveryLocationConfigured(vendorId);
+      if (!configured) {
+        return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });
+      }
+    }
+
     const { name, description, price, category, imageUrl } = req.body;
     const result = await query(
       `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url)
@@ -555,6 +574,13 @@ export async function updateVendorMenuItem(req, res) {
 
     if (req.user.role === "vendor" && req.user.vendorId !== current.rows[0].vendor_id) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (req.user.role === "vendor") {
+      const configured = await ensureVendorDeliveryLocationConfigured(current.rows[0].vendor_id);
+      if (!configured) {
+        return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });
+      }
     }
 
     const next = { ...current.rows[0], ...req.body };
@@ -580,6 +606,13 @@ export async function deleteVendorMenuItem(req, res) {
 
     if (req.user.role === "vendor" && req.user.vendorId !== current.rows[0].vendor_id) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (req.user.role === "vendor") {
+      const configured = await ensureVendorDeliveryLocationConfigured(current.rows[0].vendor_id);
+      if (!configured) {
+        return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });
+      }
     }
 
     await query(`DELETE FROM menu_items WHERE id = $1`, [Number(req.params.itemId)]);
