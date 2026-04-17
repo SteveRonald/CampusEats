@@ -1,7 +1,26 @@
 import { query } from "../db/client.js";
 
+function mapIncomingStatus(statusValue) {
+  const normalized = String(statusValue || "").toLowerCase();
+  if (["completed", "success", "successful", "paid"].includes(normalized)) {
+    return { transaction: "completed", order: "paid" };
+  }
+  if (["failed", "cancelled", "canceled"].includes(normalized)) {
+    return { transaction: "failed", order: "pending" };
+  }
+  return { transaction: "pending", order: "pending" };
+}
+
 export async function handleIntaSendWebhook(req, res) {
   try {
+    const webhookToken = process.env.INTASEND_WEBHOOK_TOKEN;
+    if (webhookToken) {
+      const receivedToken = req.get("x-intasend-webhook-token");
+      if (!receivedToken || receivedToken !== webhookToken) {
+        return res.status(401).json({ error: "Invalid webhook token" });
+      }
+    }
+
     const { paymentReference, orderId, status } = req.body;
 
     if (!paymentReference && !orderId) {
@@ -17,13 +36,23 @@ export async function handleIntaSendWebhook(req, res) {
     }
 
     const transaction = lookup.rows[0];
+    const mapped = mapIncomingStatus(status);
+
+    if (transaction.status === mapped.transaction) {
+      console.log("[IntaSend webhook] duplicate event ignored", {
+        transactionId: transaction.id,
+        paymentReference: transaction.payment_reference,
+        status: mapped.transaction
+      });
+      return res.json({ received: true, duplicate: true });
+    }
 
     const transactionResult = await query(
       `UPDATE transactions
        SET status = $2, updated_at = NOW(), raw_payload = $3::jsonb
        WHERE id = $1
        RETURNING *`,
-      [transaction.id, status === "failed" ? "failed" : "completed", JSON.stringify(req.body)]
+      [transaction.id, mapped.transaction, JSON.stringify(req.body)]
     );
 
     if (transactionResult.rows[0]) {
@@ -31,9 +60,15 @@ export async function handleIntaSendWebhook(req, res) {
         `UPDATE orders
          SET status = $2, updated_at = NOW()
          WHERE id = $1`,
-        [transactionResult.rows[0].order_id, status === "failed" ? "pending" : "paid"]
+        [transactionResult.rows[0].order_id, mapped.order]
       );
     }
+
+    console.log("[IntaSend webhook] processed", {
+      transactionId: transaction.id,
+      paymentReference: transaction.payment_reference,
+      status: mapped.transaction
+    });
 
     res.json({ received: true });
   } catch (error) {

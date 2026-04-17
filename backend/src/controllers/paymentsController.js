@@ -1,7 +1,93 @@
 import { pool } from "../db/client.js";
 import { buildOrderPublicId, buildPickupCode, hydrateOrders } from "./helpers.js";
-import { simulateCollection } from "../services/intasend.js";
+import { createCheckoutSession, getIntaSendConfig } from "../services/intasend.js";
 import { calculateSplit } from "../services/payout.js";
+
+function firstUrl(value) {
+  return String(value || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter(Boolean)[0] || "";
+}
+
+function resolveApiBaseUrl(req) {
+  const configured = firstUrl(process.env.API_BASE_URL);
+  if (configured) return configured;
+  return `${req.protocol}://${req.get("host")}`;
+}
+
+function resolveClientBaseUrl(req) {
+  const origin = req?.get?.("origin");
+  if (origin) return origin;
+
+  const configured = firstUrl(process.env.CLIENT_URL);
+  return configured || "http://localhost:3000";
+}
+
+export async function getPaymentMode(_req, res) {
+  const config = getIntaSendConfig();
+  res.json({
+    mode: config.mode,
+    configured: config.configured,
+    provider: "intasend"
+  });
+}
+
+export async function handlePaymentCallback(req, res) {
+  try {
+    const paymentReference = String(req.query.paymentReference || req.query.api_ref || req.query.reference || "").trim();
+    const outcome = String(req.query.status || req.query.state || "").toLowerCase();
+    const publicOrderId = String(req.query.order || req.query.orderPublicId || "").trim();
+
+    let transaction = null;
+
+    if (paymentReference) {
+      const result = await pool.query(`SELECT * FROM transactions WHERE payment_reference = $1 LIMIT 1`, [paymentReference]);
+      transaction = result.rows[0] ?? null;
+    }
+
+    if (!transaction && publicOrderId) {
+      const result = await pool.query(
+        `SELECT t.*
+         FROM transactions t
+         INNER JOIN orders o ON o.id = t.order_id
+         WHERE o.public_id = $1
+         LIMIT 1`,
+        [publicOrderId]
+      );
+      transaction = result.rows[0] ?? null;
+    }
+
+    if (!transaction) {
+      const fallbackUrl = `${resolveClientBaseUrl(req)}/orders`;
+      return res.redirect(fallbackUrl);
+    }
+
+    const transactionStatus = outcome === "failed" || outcome === "cancelled" || outcome === "canceled" ? "failed" : outcome ? "completed" : transaction.status;
+    const orderStatus = transactionStatus === "completed" ? "paid" : "pending";
+
+    await pool.query(
+      `UPDATE transactions
+       SET status = $2,
+           updated_at = NOW(),
+           raw_payload = jsonb_set(COALESCE(raw_payload, '{}'::jsonb), '{callback_status}', to_jsonb($3::text), true)
+       WHERE id = $1`,
+      [transaction.id, transactionStatus, outcome || "unknown"]
+    );
+
+    await pool.query(`UPDATE orders SET status = $2, updated_at = NOW() WHERE id = $1`, [transaction.order_id, orderStatus]);
+
+    const orderLookup = await pool.query(`SELECT public_id FROM orders WHERE id = $1 LIMIT 1`, [transaction.order_id]);
+    const nextPublicOrderId = orderLookup.rows[0]?.public_id;
+    const targetUrl = nextPublicOrderId
+      ? `${resolveClientBaseUrl(req)}/orders/${nextPublicOrderId}?payment=${encodeURIComponent(outcome || transactionStatus)}`
+      : `${resolveClientBaseUrl(req)}/orders?payment=${encodeURIComponent(outcome || transactionStatus)}`;
+
+    return res.redirect(targetUrl);
+  } catch (_error) {
+    return res.redirect(`${resolveClientBaseUrl(req)}/orders?payment=callback_error`);
+  }
+}
 
 export async function checkout(req, res) {
   const client = await pool.connect();
@@ -145,9 +231,9 @@ export async function checkout(req, res) {
       };
     });
 
-    const orderResult = await client.query(
+     const orderResult = await client.query(
       `INSERT INTO orders (student_id, vendor_id, public_id, student_name, order_type, status, total_amount, pickup_code, pickup_location, delivery_details, hostel_id, room_number, service_area_id, notes)
-       VALUES ($1, $2, $3, $4, $5, 'paid', $6, $7, $8, $9::jsonb, $10, $11, $12, $13)
+       VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9::jsonb, $10, $11, $12, $13)
        RETURNING *`,
       [
         req.user.id,
@@ -183,18 +269,47 @@ export async function checkout(req, res) {
       );
     }
 
-    const collection = simulateCollection({ orderId: order.id, amount: totalAmount, customerName: studentName });
+    const intasendConfig = getIntaSendConfig();
+    const paymentReference = `ORD-${order.id}-${Date.now()}`;
     const split = calculateSplit(totalAmount);
+    const studentResult = await client.query(`SELECT email, name FROM users WHERE id = $1 LIMIT 1`, [req.user.id]);
+    const studentEmail = studentResult.rows[0]?.email || "student@campuseats.local";
+    const studentDisplayName = studentResult.rows[0]?.name || studentName || "Student";
 
-    await client.query(
-      `UPDATE orders SET payment_reference = $2 WHERE id = $1`,
-      [order.id, collection.paymentReference]
-    );
+    await client.query(`UPDATE orders SET payment_reference = $2 WHERE id = $1`, [order.id, paymentReference]);
+
+    if (!intasendConfig.configured) {
+      throw new Error(`IntaSend ${intasendConfig.mode.toUpperCase()} keys are not configured`);
+    }
+
+    const apiBaseUrl = resolveApiBaseUrl(req);
+    const clientBaseUrl = resolveClientBaseUrl(req);
+    const session = await createCheckoutSession({
+      amount: totalAmount,
+      email: studentEmail,
+      customerName: studentDisplayName,
+      reference: paymentReference,
+      callbackUrl: `${apiBaseUrl}/api/webhook/intasend`,
+      redirectUrl: `${clientBaseUrl}/orders/${order.public_id}`,
+      metadata: {
+        orderId: order.id,
+        publicOrderId: order.public_id,
+        mode: intasendConfig.mode
+      }
+    });
+
+    if (!session.checkoutUrl) {
+      throw new Error("IntaSend checkout URL was not returned");
+    }
+
+    const checkoutUrl = session.checkoutUrl;
+    const providerPayload = session.rawPayload;
+    const transactionStatus = "pending";
 
     await client.query(
       `INSERT INTO transactions (order_id, payment_provider, payment_reference, amount, commission, vendor_payout, payout_reference, status, raw_payload)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, 'completed', $8::jsonb)`,
-      [order.id, collection.paymentProvider, collection.paymentReference, totalAmount, split.commission, split.vendorPayout, split.payoutReference, JSON.stringify(collection)]
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
+      [order.id, "intasend", paymentReference, totalAmount, split.commission, split.vendorPayout, split.payoutReference, transactionStatus, JSON.stringify(providerPayload)]
     );
 
     await client.query("COMMIT");
@@ -212,7 +327,12 @@ export async function checkout(req, res) {
     );
 
     const [hydrated] = await hydrateOrders(fullOrder.rows);
-    res.status(201).json(hydrated);
+    res.status(201).json({
+      ...hydrated,
+      checkout_url: checkoutUrl,
+      payment_mode: intasendConfig.mode,
+      last_callback_status: transactionStatus
+    });
   } catch (error) {
     await client.query("ROLLBACK");
     res.status(500).json({ error: error.message || "Checkout failed" });
@@ -224,12 +344,74 @@ export async function checkout(req, res) {
 export async function listTransactions(_req, res) {
   try {
     const result = await pool.query(
-      `SELECT id, amount, commission, vendor_payout, status, created_at
+      `SELECT id, order_id, payment_reference, amount, commission, vendor_payout, status,
+              COALESCE(raw_payload->>'status', raw_payload->>'state', raw_payload->>'event') AS last_callback_status,
+              created_at
        FROM transactions
        ORDER BY created_at DESC`
     );
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch transactions" });
+  }
+}
+
+export async function simulatePaymentResult(req, res) {
+  try {
+    const config = getIntaSendConfig();
+    if (config.mode !== "test") {
+      return res.status(400).json({ error: "Payment simulation is only allowed in TEST mode" });
+    }
+
+    const orderId = Number(req.params.orderId);
+    const outcome = String(req.body?.status || "success").toLowerCase();
+    if (!orderId || !["success", "failed", "cancelled"].includes(outcome)) {
+      return res.status(400).json({ error: "Provide a valid order ID and status: success|failed|cancelled" });
+    }
+
+    const transactionLookup = await pool.query(`SELECT * FROM transactions WHERE order_id = $1 LIMIT 1`, [orderId]);
+    if (!transactionLookup.rows.length) {
+      return res.status(404).json({ error: "Transaction not found for this order" });
+    }
+
+    const transactionStatus = outcome === "success" ? "completed" : "failed";
+    const orderStatus = outcome === "success" ? "paid" : "pending";
+
+    await pool.query(
+      `UPDATE transactions
+       SET status = $2,
+           updated_at = NOW(),
+           raw_payload = jsonb_set(COALESCE(raw_payload, '{}'::jsonb), '{status}', to_jsonb($3::text), true)
+       WHERE id = $1`,
+      [transactionLookup.rows[0].id, transactionStatus, outcome]
+    );
+
+    await pool.query(
+      `UPDATE orders
+       SET status = $2, updated_at = NOW()
+       WHERE id = $1`,
+      [orderId, orderStatus]
+    );
+
+    const refreshed = await pool.query(
+      `SELECT o.*, v.stall_name AS vendor_name, v.location AS vendor_location,
+              v.pickup_time_min, v.pickup_time_max,
+              h.name AS hostel_name, sa.name AS service_area_name
+       FROM orders o
+       INNER JOIN vendors v ON v.id = o.vendor_id
+       LEFT JOIN hostels h ON h.id = o.hostel_id
+       LEFT JOIN service_areas sa ON sa.id = o.service_area_id
+       WHERE o.id = $1`,
+      [orderId]
+    );
+
+    const [hydrated] = await hydrateOrders(refreshed.rows);
+    return res.json({
+      ...hydrated,
+      payment_mode: config.mode,
+      last_callback_status: transactionStatus
+    });
+  } catch (error) {
+    return res.status(500).json({ error: "Failed to simulate payment result" });
   }
 }

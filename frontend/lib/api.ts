@@ -1,6 +1,7 @@
 import {
   AuthResponse,
   ForgotPasswordPayload,
+  PaymentModeInfo,
   LoginPayload,
   MenuItemRecord,
   Hostel,
@@ -92,6 +93,7 @@ export const client = {
     orderType?: "dine_in" | "delivery";
     deliveryDetails?: DeliveryDetailsPayload | null;
   }) => api<OrderRecord>("/api/payments/checkout", { method: "POST", body: JSON.stringify(payload) }),
+    paymentMode: () => api<PaymentModeInfo>("/api/payments/mode"),
   studentOrders: () => api<OrderRecord[]>("/api/orders"),
   order: (orderId: number | string) => api<OrderRecord>(`/api/orders/${orderId}`),
   updateOrderStatus: (orderId: number, status: string) =>

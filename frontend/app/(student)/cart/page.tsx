@@ -3,16 +3,17 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Minus, Plus, Trash2, ShoppingBag, Home, Truck, MapPin } from "lucide-react";
-import { useCart, useSession } from "@/components/providers";
+import { useCart, useSession, useToast } from "@/components/providers";
 import { StudentLayout } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { formatKES } from "@/lib/utils";
-import { DeliveryDetailsPayload, Hostel, ServiceArea, VendorDeliveryLocation } from "@/lib/types";
+import { DeliveryDetailsPayload, Hostel, PaymentModeInfo, ServiceArea, VendorDeliveryLocation } from "@/lib/types";
 
 export default function CartPage() {
   const router = useRouter();
   const { items, clearCart, totalAmount, updateQuantity, vendorId } = useCart();
   const { profile } = useSession();
+  const { toast } = useToast();
   const [notes, setNotes] = useState("");
   const [studentName, setStudentName] = useState(profile?.name ?? "");
   const [submitting, setSubmitting] = useState(false);
@@ -21,6 +22,7 @@ export default function CartPage() {
   const [hostels, setHostels] = useState<Hostel[]>([]);
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>([]);
   const [deliveryLocations, setDeliveryLocations] = useState<VendorDeliveryLocation[]>([]);
+  const [paymentMode, setPaymentMode] = useState<PaymentModeInfo | null>(null);
   const [hostelId, setHostelId] = useState("");
   const [roomNumber, setRoomNumber] = useState("");
   const [serviceAreaId, setServiceAreaId] = useState("");
@@ -38,7 +40,12 @@ export default function CartPage() {
   useEffect(() => {
     client.hostels().then(setHostels).catch(() => setHostels([]));
     client.serviceAreas().then(setServiceAreas).catch(() => setServiceAreas([]));
-  }, []);
+    if (profile) {
+      client.paymentMode().then(setPaymentMode).catch(() => setPaymentMode(null));
+    } else {
+      setPaymentMode(null);
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (!vendorId || orderType !== "delivery" || deliveryMode !== "off_campus" || !serviceAreaId) {
@@ -137,7 +144,23 @@ export default function CartPage() {
         items: items.map((item) => ({ menuItemId: item.menuItemId, quantity: item.quantity }))
       });
       clearCart();
+      if (order.checkout_url) {
+        window.location.assign(order.checkout_url);
+        return;
+      }
+
       router.push(`/orders/${order.public_id ?? order.id}`);
+    } catch (error) {
+      const rawMessage = error instanceof Error ? error.message : "Failed to start payment. Please try again.";
+      const message = rawMessage.includes("Failed to create IntaSend checkout session")
+        ? "Could not open M-Pesa checkout right now. Please try again in a moment."
+        : rawMessage;
+
+      toast({
+        title: "Payment could not start",
+        description: message,
+        tone: "error"
+      });
     } finally {
       setSubmitting(false);
     }
@@ -168,8 +191,16 @@ export default function CartPage() {
       <div className="px-4 pt-4">
         <h1 className="text-2xl font-bold text-foreground mb-1">Your cart</h1>
         <p className="text-sm text-muted-foreground mb-4">
-          {profile ? "Checkout uses simulated IntaSend and marks the order paid instantly" : "Browse freely. Sign in only when you are ready to place the order."}
+          {profile
+            ? `Payment provider: IntaSend (${paymentMode?.mode?.toUpperCase() ?? "TEST"} mode). Complete payment in the hosted checkout page.`
+            : "Browse freely. Sign in only when you are ready to place the order."}
         </p>
+
+        {profile && paymentMode ? (
+          <div className={`mb-4 rounded-lg border px-3 py-2 text-xs font-semibold ${paymentMode.mode === "live" ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800"}`}>
+            Current payment mode: {paymentMode.mode.toUpperCase()} {paymentMode.configured ? "(configured)" : "(not configured)"}
+          </div>
+        ) : null}
 
         <div className="space-y-3 mb-5">
           {items.map((item) => (
@@ -425,8 +456,30 @@ export default function CartPage() {
           disabled={submitting}
           className="w-full bg-primary text-white py-4 rounded-xl font-bold text-base hover:bg-primary/90 active:scale-[0.99] transition-all shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {submitting ? "Placing order..." : profile ? `Place order - ${formatKES(totalAmount)}` : "Sign in to place order"}
+          {submitting ? "Preparing payment..." : profile ? `Pay ${formatKES(totalAmount)} with M-Pesa` : "Sign in to place order"}
         </button>
+
+        {profile ? (
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-600">
+            <span className="inline-flex items-center rounded-md border border-emerald-200 bg-emerald-50 px-2 py-1 font-bold text-emerald-700">
+              M-PESA
+            </span>
+
+            <span className="inline-flex items-center rounded-md border border-blue-200 bg-blue-50 px-2 py-1 font-bold text-blue-700">
+              VISA
+            </span>
+
+            <span className="inline-flex items-center gap-1 rounded-md border border-orange-200 bg-orange-50 px-2 py-1 font-bold text-orange-700">
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
+              Mastercard
+            </span>
+
+            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-50 px-2 py-1 font-bold text-slate-700">
+              SSL Secured
+            </span>
+          </div>
+        ) : null}
       </div>
     </StudentLayout>
   );

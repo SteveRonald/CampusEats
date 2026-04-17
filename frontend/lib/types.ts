@@ -182,6 +182,15 @@ export interface OrderRecord {
   pickup_time_min: number;
   pickup_time_max: number;
   items: OrderItem[];
+  checkout_url?: string | null;
+  payment_mode?: "test" | "live";
+  last_callback_status?: string | null;
+}
+
+export interface PaymentModeInfo {
+  mode: "test" | "live";
+  configured: boolean;
+  provider: "intasend";
 }
 
 export interface VendorBusinessProfile {
