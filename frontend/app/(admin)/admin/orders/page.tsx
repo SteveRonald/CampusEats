@@ -30,6 +30,71 @@ function buildAdminOrderMessage(order: OrderRecord): string {
   ].join("\n");
 }
 
+function getDeliveryLocationSummary(order: OrderRecord): string | null {
+  if (order.order_type !== "delivery") return null;
+
+  const details = order.delivery_details;
+  const mode = details?.mode;
+
+  if (mode === "hostel") {
+    const hostel = details?.hostelName ?? order.hostel_name ?? "Hostel";
+    const room = details?.roomNumber ?? order.room_number ?? "";
+    return room ? `${hostel}, Room ${room}` : hostel;
+  }
+
+  if (mode === "off_campus") {
+    const area = details?.serviceAreaName ?? order.service_area_name ?? "Service area";
+    const label = details?.deliveryLocationLabel ?? "";
+    const location = details?.deliveryLocation ?? "";
+    return [area, label, location].filter(Boolean).join(" - ") || area;
+  }
+
+  if (mode === "other") {
+    const place = details?.otherLocationName ?? "Other location";
+    const extra = details?.otherLocationDetails ?? "";
+    return extra ? `${place} - ${extra}` : place;
+  }
+
+  const fallback = details?.deliveryLocation || details?.deliveryLocationLabel || details?.hostelName || details?.serviceAreaName;
+  return fallback ?? null;
+}
+
+function getDeliveryLocationDetails(order: OrderRecord): Array<{ label: string; value: string }> {
+  const details: Array<{ label: string; value: string }> = [];
+  const payload = order.delivery_details;
+
+  if (!payload) {
+    return details;
+  }
+
+  if (payload.mode) {
+    details.push({ label: "Mode", value: payload.mode.replace(/_/g, " ") });
+  }
+  if (payload.hostelName || order.hostel_name) {
+    details.push({ label: "Hostel", value: payload.hostelName ?? order.hostel_name ?? "-" });
+  }
+  if (payload.roomNumber || order.room_number) {
+    details.push({ label: "Room", value: payload.roomNumber ?? order.room_number ?? "-" });
+  }
+  if (payload.serviceAreaName || order.service_area_name) {
+    details.push({ label: "Service Area", value: payload.serviceAreaName ?? order.service_area_name ?? "-" });
+  }
+  if (payload.deliveryLocationLabel) {
+    details.push({ label: "Location Label", value: payload.deliveryLocationLabel });
+  }
+  if (payload.deliveryLocation) {
+    details.push({ label: "Location", value: payload.deliveryLocation });
+  }
+  if (payload.otherLocationName) {
+    details.push({ label: "Other Place", value: payload.otherLocationName });
+  }
+  if (payload.otherLocationDetails) {
+    details.push({ label: "Place Details", value: payload.otherLocationDetails });
+  }
+
+  return details;
+}
+
 const STATUS_ACTIONS: Record<string, { next: string; label: string; btnClass: string }> = {
   paid: { next: "preparing", label: "Start preparing", btnClass: "bg-yellow-500 text-white" },
   preparing: { next: "ready", label: "Mark ready", btnClass: "bg-secondary text-white" },
@@ -67,6 +132,8 @@ export default function AdminOrdersPage() {
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
   const [search, setSearch] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
+  const [selectedItemImage, setSelectedItemImage] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -186,7 +253,25 @@ export default function AdminOrdersPage() {
           <>
             <div className="grid gap-3 xl:hidden">
               {visibleOrders.map((order) => (
-                <article key={order.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <article
+                  key={order.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={(event) => {
+                    const target = event.target as HTMLElement;
+                    if (target.closest("button, a, input, textarea")) return;
+                    setSelectedOrder(order);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      const target = event.target as HTMLElement;
+                      if (target.closest("button, a, input, textarea")) return;
+                      event.preventDefault();
+                      setSelectedOrder(order);
+                    }
+                  }}
+                  className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+                >
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-sm font-black text-[#1F2937]">#{highlightMatch(String(order.id), normalizedSearch)}</p>
@@ -201,12 +286,21 @@ export default function AdminOrdersPage() {
                       <p className="font-semibold text-[#1F2937]">{highlightMatch(order.student_name, normalizedSearch)}</p>
                       <p className="text-[11px] text-slate-500">{formatOrderDateTime(order.created_at)}</p>
                       <p className="text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{highlightMatch(order.pickup_code, normalizedSearch)}</span></p>
-                      {order.delivery_details?.mode === "other" ? (
-                        <p className="text-[11px] text-amber-700">Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}</p>
-                      ) : null}
+                      {getDeliveryLocationSummary(order) ? <p className="text-[11px] text-amber-700">Delivery: {getDeliveryLocationSummary(order)}</p> : null}
                     </div>
 
-                    <p className="text-sm text-slate-600">{highlightMatch(order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", "), normalizedSearch)}</p>
+                    <div className="space-y-2 text-sm text-slate-600">
+                      {order.items.map((item, index) => (
+                        <span key={`${order.id}-${item.id}-${index}`} className="flex items-center gap-2 min-w-0">
+                          {item.menu_item_image_url ? (
+                            <img src={item.menu_item_image_url} alt={item.menu_item_name} className="h-10 w-10 rounded-md object-cover" />
+                          ) : (
+                            <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-slate-200 text-[10px] font-bold text-slate-500">N/A</span>
+                          )}
+                          <span className="truncate">{highlightMatch(`${item.menu_item_name} x${item.quantity}`, normalizedSearch)}</span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -273,7 +367,25 @@ export default function AdminOrdersPage() {
 
                 <div className="divide-y divide-slate-200">
                   {visibleOrders.map((order) => (
-                    <article key={order.id} className="grid grid-cols-[84px_170px_150px_150px_minmax(220px,1fr)_110px_180px] items-center gap-2 px-3 py-3">
+                    <article
+                      key={order.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        const target = event.target as HTMLElement;
+                        if (target.closest("button, a, input, textarea")) return;
+                        setSelectedOrder(order);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          const target = event.target as HTMLElement;
+                          if (target.closest("button, a, input, textarea")) return;
+                          event.preventDefault();
+                          setSelectedOrder(order);
+                        }
+                      }}
+                      className="grid grid-cols-[84px_170px_150px_150px_minmax(220px,1fr)_110px_180px] items-center gap-2 px-3 py-3"
+                    >
                       <p className="text-sm font-black text-[#1F2937]">#{highlightMatch(String(order.id), normalizedSearch)}</p>
 
                       <p className="text-xs text-slate-500">{formatOrderDateTime(order.created_at)}</p>
@@ -286,12 +398,21 @@ export default function AdminOrdersPage() {
                       <div className="min-w-0">
                         <p className="truncate text-sm font-semibold text-[#1F2937]">{highlightMatch(order.student_name, normalizedSearch)}</p>
                         <p className="truncate text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{highlightMatch(order.pickup_code, normalizedSearch)}</span></p>
-                        {order.delivery_details?.mode === "other" ? (
-                          <p className="truncate text-[11px] text-amber-700">Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}</p>
-                        ) : null}
+                        {getDeliveryLocationSummary(order) ? <p className="truncate text-[11px] text-amber-700">Delivery: {getDeliveryLocationSummary(order)}</p> : null}
                       </div>
 
-                      <p className="truncate text-sm text-slate-600">{highlightMatch(order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", "), normalizedSearch)}</p>
+                      <div className="space-y-1.5 min-w-0">
+                        {order.items.map((item, index) => (
+                          <span key={`${order.id}-${item.id}-${index}`} className="flex max-w-full items-center gap-1.5 text-[11px] text-slate-600">
+                            {item.menu_item_image_url ? (
+                              <img src={item.menu_item_image_url} alt={item.menu_item_name} className="h-8 w-8 rounded-md object-cover" />
+                            ) : (
+                              <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-200 text-[9px] font-bold text-slate-500">N/A</span>
+                            )}
+                            <span className="truncate">{highlightMatch(`${item.menu_item_name} x${item.quantity}`, normalizedSearch)}</span>
+                          </span>
+                        ))}
+                      </div>
 
                       <p className="text-sm font-bold text-primary">{formatKES(order.total_amount)}</p>
 
@@ -342,6 +463,119 @@ export default function AdminOrdersPage() {
                 </div>
               </div>
             </div>
+
+            {selectedOrder ? (
+              <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-2 sm:items-center sm:p-4" onClick={() => setSelectedOrder(null)}>
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label={`Order ${selectedOrder.id} details`}
+                  className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-2xl"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+                    <div>
+                      <p className="text-base font-black text-[#1F2937]">Order #{selectedOrder.id}</p>
+                      <p className="text-xs text-slate-500">{formatOrderDateTime(selectedOrder.created_at)}</p>
+                    </div>
+                    <button onClick={() => setSelectedOrder(null)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                      Close
+                    </button>
+                  </div>
+
+                  <div className="space-y-4 px-4 py-4 sm:px-5">
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Vendor</p>
+                        <p className="mt-1 text-sm font-semibold text-[#1F2937]">{selectedOrder.vendor_name}</p>
+                        <p className="text-xs text-slate-600">{selectedOrder.vendor_location ?? "No location set"}</p>
+                        <p className="text-xs text-slate-600">Phone: {selectedOrder.vendor_phone ?? "Not provided"}</p>
+                      </div>
+
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Customer</p>
+                        <p className="mt-1 text-sm font-semibold text-[#1F2937]">{selectedOrder.student_name}</p>
+                        <p className="text-xs text-slate-600">Phone: {selectedOrder.student_phone ?? "Not provided"}</p>
+                        <p className="text-xs text-slate-600">Pickup code: <span className="font-mono">{selectedOrder.pickup_code}</span></p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Order Summary</p>
+                      <div className="mt-1 grid gap-1 text-sm text-slate-700 sm:grid-cols-2">
+                        <p><span className="font-semibold text-[#1F2937]">Status:</span> {getStatusLabel(selectedOrder.status)}</p>
+                        <p><span className="font-semibold text-[#1F2937]">Type:</span> {selectedOrder.order_type}</p>
+                        <p><span className="font-semibold text-[#1F2937]">Total:</span> {formatKES(selectedOrder.total_amount)}</p>
+                        <p><span className="font-semibold text-[#1F2937]">Placed:</span> {formatOrderDateTime(selectedOrder.created_at)}</p>
+                      </div>
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Selected Delivery Location</p>
+                      {getDeliveryLocationDetails(selectedOrder).length > 0 ? (
+                        <div className="mt-2 grid gap-1.5 text-sm text-slate-700 sm:grid-cols-2">
+                          {getDeliveryLocationDetails(selectedOrder).map((row) => (
+                            <p key={`${row.label}-${row.value}`}>
+                              <span className="font-semibold text-[#1F2937]">{row.label}:</span> {row.value}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm text-slate-500">No delivery location details captured for this order.</p>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border border-slate-200 p-3">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Items</p>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        {selectedOrder.items.map((item, index) => (
+                          <div key={`${selectedOrder.id}-${item.id}-${index}`} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                            {item.menu_item_image_url ? (
+                              <button
+                                type="button"
+                                onClick={() => setSelectedItemImage({ src: item.menu_item_image_url as string, alt: item.menu_item_name })}
+                                className="rounded-md focus:outline-none focus:ring-2 focus:ring-primary/40"
+                                aria-label={`View ${item.menu_item_name} image`}
+                              >
+                                <img src={item.menu_item_image_url} alt={item.menu_item_name} className="h-14 w-14 rounded-md object-cover" />
+                              </button>
+                            ) : (
+                              <span className="inline-flex h-14 w-14 items-center justify-center rounded-md bg-slate-200 text-xs font-bold text-slate-500">N/A</span>
+                            )}
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-[#1F2937]">{item.menu_item_name}</p>
+                              <p className="text-xs text-slate-600">Qty: {item.quantity}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {selectedOrder.notes ? (
+                      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Customer Note</p>
+                        <p className="mt-1 text-sm text-slate-700">{selectedOrder.notes}</p>
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {selectedItemImage ? (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3" onClick={() => setSelectedItemImage(null)}>
+                <div className="relative w-full max-w-3xl" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedItemImage(null)}
+                    className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-semibold text-white"
+                  >
+                    Close
+                  </button>
+                  <img src={selectedItemImage.src} alt={selectedItemImage.alt} className="max-h-[85vh] w-full rounded-lg object-contain" />
+                </div>
+              </div>
+            ) : null}
           </>
         )}
       </div>

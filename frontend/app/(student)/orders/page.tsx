@@ -49,6 +49,7 @@ export default function OrdersPage() {
   const { profile } = useSession();
   const { setItems } = useCart();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
+  const [isLoadingOrders, setIsLoadingOrders] = useState(false);
 
   useEffect(() => {
     if (!profile) return;
@@ -57,9 +58,33 @@ export default function OrdersPage() {
       return;
     }
 
-    client.studentOrders().then(setOrders);
-    const interval = setInterval(() => client.studentOrders().then(setOrders), 10000);
-    return () => clearInterval(interval);
+    let isMounted = true;
+
+    const loadOrders = async (showSpinner = false) => {
+      if (showSpinner && isMounted) {
+        setIsLoadingOrders(true);
+      }
+
+      try {
+        const data = await client.studentOrders();
+        if (!isMounted) return;
+        setOrders(data);
+      } catch (_error) {
+        if (!isMounted) return;
+        setOrders([]);
+      } finally {
+        if (showSpinner && isMounted) {
+          setIsLoadingOrders(false);
+        }
+      }
+    };
+
+    loadOrders(true);
+    const interval = setInterval(() => loadOrders(false), 10000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [profile, router]);
 
   if (!profile) {
@@ -84,7 +109,12 @@ export default function OrdersPage() {
       <div className="px-4 pt-4">
         <h1 className="text-2xl font-bold text-foreground mb-4">Your orders</h1>
 
-        {orders.length === 0 ? (
+        {isLoadingOrders ? (
+          <div className="py-16 text-center">
+            <div className="mx-auto h-9 w-9 animate-spin rounded-full border-2 border-orange-200 border-t-primary" />
+            <p className="mt-3 text-sm font-semibold text-foreground">Loading your orders...</p>
+          </div>
+        ) : orders.length === 0 ? (
           <div className="text-center py-16">
             <div className="text-5xl mb-3">ORD</div>
             <h3 className="font-bold text-foreground mb-1">No orders yet</h3>

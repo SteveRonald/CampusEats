@@ -56,6 +56,71 @@ function buildVendorOrderMessage(order: OrderRecord): string {
   ].join("\n");
 }
 
+function getDeliveryLocationSummary(order: OrderRecord): string | null {
+  if (order.order_type !== "delivery") return null;
+
+  const details = order.delivery_details;
+  const mode = details?.mode;
+
+  if (mode === "hostel") {
+    const hostel = details?.hostelName ?? order.hostel_name ?? "Hostel";
+    const room = details?.roomNumber ?? order.room_number ?? "";
+    return room ? `${hostel}, Room ${room}` : hostel;
+  }
+
+  if (mode === "off_campus") {
+    const area = details?.serviceAreaName ?? order.service_area_name ?? "Service area";
+    const label = details?.deliveryLocationLabel ?? "";
+    const location = details?.deliveryLocation ?? "";
+    return [area, label, location].filter(Boolean).join(" - ") || area;
+  }
+
+  if (mode === "other") {
+    const place = details?.otherLocationName ?? "Other location";
+    const extra = details?.otherLocationDetails ?? "";
+    return extra ? `${place} - ${extra}` : place;
+  }
+
+  const fallback = details?.deliveryLocation || details?.deliveryLocationLabel || details?.hostelName || details?.serviceAreaName;
+  return fallback ?? null;
+}
+
+function getDeliveryLocationDetails(order: OrderRecord): Array<{ label: string; value: string }> {
+  const details: Array<{ label: string; value: string }> = [];
+  const payload = order.delivery_details;
+
+  if (!payload) {
+    return details;
+  }
+
+  if (payload.mode) {
+    details.push({ label: "Mode", value: payload.mode.replace(/_/g, " ") });
+  }
+  if (payload.hostelName || order.hostel_name) {
+    details.push({ label: "Hostel", value: payload.hostelName ?? order.hostel_name ?? "-" });
+  }
+  if (payload.roomNumber || order.room_number) {
+    details.push({ label: "Room", value: payload.roomNumber ?? order.room_number ?? "-" });
+  }
+  if (payload.serviceAreaName || order.service_area_name) {
+    details.push({ label: "Service Area", value: payload.serviceAreaName ?? order.service_area_name ?? "-" });
+  }
+  if (payload.deliveryLocationLabel) {
+    details.push({ label: "Location Label", value: payload.deliveryLocationLabel });
+  }
+  if (payload.deliveryLocation) {
+    details.push({ label: "Location", value: payload.deliveryLocation });
+  }
+  if (payload.otherLocationName) {
+    details.push({ label: "Other Place", value: payload.otherLocationName });
+  }
+  if (payload.otherLocationDetails) {
+    details.push({ label: "Place Details", value: payload.otherLocationDetails });
+  }
+
+  return details;
+}
+
 function WhatsAppIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-4 h-4" aria-hidden="true" focusable="false">
@@ -81,6 +146,8 @@ export default function VendorOrdersPage() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<OrderRecord | null>(null);
+  const [selectedItemImage, setSelectedItemImage] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     if (!vendorId) return;
@@ -211,6 +278,21 @@ export default function VendorOrdersPage() {
                   return (
                     <article
                       key={order.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={(event) => {
+                        const target = event.target as HTMLElement;
+                        if (target.closest("button, a, input, textarea")) return;
+                        setSelectedOrder(order);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          const target = event.target as HTMLElement;
+                          if (target.closest("button, a, input, textarea")) return;
+                          event.preventDefault();
+                          setSelectedOrder(order);
+                        }
+                      }}
                       className={`grid grid-cols-[110px_150px_minmax(220px,1fr)_100px_100px_180px] items-center gap-3 px-3 py-3 md:grid-cols-[115px_165px_minmax(240px,1fr)_110px_110px_195px] md:px-4 lg:grid-cols-[120px_180px_minmax(0,1fr)_120px_120px_210px] ${
                         isHighlightedBySearch ? "bg-orange-50/60" : "bg-white"
                       }`}
@@ -223,22 +305,24 @@ export default function VendorOrdersPage() {
                       <div>
                         <p className="text-sm font-semibold text-[#1F2937]"><HighlightMatch text={order.student_name} query={search} /></p>
                         <p className="text-[11px] text-slate-500">Pickup Code: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
-                        {order.delivery_details?.mode === "other" ? (
-                          <p className="mt-0.5 text-[11px] text-amber-700">
-                            Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}
-                          </p>
-                        ) : null}
+                        {getDeliveryLocationSummary(order) ? <p className="mt-0.5 text-[11px] text-amber-700">Delivery: {getDeliveryLocationSummary(order)}</p> : null}
                       </div>
 
                       <div className="min-w-0">
-                        <div className="flex flex-wrap gap-x-1 gap-y-1 text-sm text-[#1F2937]">
+                        <div className="space-y-1.5 text-sm text-[#1F2937]">
                           {order.items.map((item, index) => {
                             const itemLabel = `${item.menu_item_name} x${item.quantity}`;
 
                             return (
-                              <span key={`${order.id}-${item.id}`} className="whitespace-nowrap">
-                                <HighlightMatch text={itemLabel} query={search} />
-                                {index < order.items.length - 1 ? <span className="text-slate-400">,</span> : null}
+                              <span key={`${order.id}-${item.id}-${index}`} className="flex items-center gap-2 min-w-0">
+                                {item.menu_item_image_url ? (
+                                  <img src={item.menu_item_image_url} alt={item.menu_item_name} className="h-10 w-10 rounded-md object-cover" />
+                                ) : (
+                                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-slate-200 text-[10px] font-bold text-slate-500">N/A</span>
+                                )}
+                                <span className="truncate">
+                                  <HighlightMatch text={itemLabel} query={search} />
+                                </span>
                               </span>
                             );
                           })}
@@ -304,6 +388,109 @@ export default function VendorOrdersPage() {
             </div>
           </div>
         )}
+
+        {selectedOrder ? (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-2 sm:items-center sm:p-4" onClick={() => setSelectedOrder(null)}>
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Order ${selectedOrder.id} details`}
+              className="max-h-[92vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-2xl"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-4 py-3 sm:px-5">
+                <div>
+                  <p className="text-base font-black text-[#1F2937]">Order #{selectedOrder.id}</p>
+                  <p className="text-xs text-slate-500">{formatOrderDateTime(selectedOrder.created_at)}</p>
+                </div>
+                <button onClick={() => setSelectedOrder(null)} className="rounded-md border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600">
+                  Close
+                </button>
+              </div>
+
+              <div className="space-y-4 px-4 py-4 sm:px-5">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Customer</p>
+                    <p className="mt-1 text-sm font-semibold text-[#1F2937]">{selectedOrder.student_name}</p>
+                    <p className="text-xs text-slate-600">Phone: {selectedOrder.student_phone ?? "Not provided"}</p>
+                    <p className="text-xs text-slate-600">Pickup code: <span className="font-mono">{selectedOrder.pickup_code}</span></p>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Order</p>
+                    <p className="mt-1 text-sm font-semibold text-[#1F2937]">{getStatusLabel(selectedOrder.status)}</p>
+                    <p className="text-xs text-slate-600">Type: {selectedOrder.order_type}</p>
+                    <p className="text-xs text-slate-600">Total: {formatKES(selectedOrder.total_amount)}</p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Selected Delivery Location</p>
+                  {getDeliveryLocationDetails(selectedOrder).length > 0 ? (
+                    <div className="mt-2 grid gap-1.5 text-sm text-slate-700 sm:grid-cols-2">
+                      {getDeliveryLocationDetails(selectedOrder).map((row) => (
+                        <p key={`${row.label}-${row.value}`}>
+                          <span className="font-semibold text-[#1F2937]">{row.label}:</span> {row.value}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-slate-500">No delivery location details captured for this order.</p>
+                  )}
+                </div>
+
+                <div className="rounded-lg border border-slate-200 p-3">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Items</p>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    {selectedOrder.items.map((item, index) => (
+                      <div key={`${selectedOrder.id}-${item.id}-${index}`} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
+                        {item.menu_item_image_url ? (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedItemImage({ src: item.menu_item_image_url as string, alt: item.menu_item_name })}
+                            className="rounded-md focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            aria-label={`View ${item.menu_item_name} image`}
+                          >
+                            <img src={item.menu_item_image_url} alt={item.menu_item_name} className="h-14 w-14 rounded-md object-cover" />
+                          </button>
+                        ) : (
+                          <span className="inline-flex h-14 w-14 items-center justify-center rounded-md bg-slate-200 text-xs font-bold text-slate-500">N/A</span>
+                        )}
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[#1F2937]">{item.menu_item_name}</p>
+                          <p className="text-xs text-slate-600">Qty: {item.quantity}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {selectedOrder.notes ? (
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 p-3">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-slate-500">Customer Note</p>
+                    <p className="mt-1 text-sm text-slate-700">{selectedOrder.notes}</p>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {selectedItemImage ? (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-3" onClick={() => setSelectedItemImage(null)}>
+            <div className="relative w-full max-w-3xl" onClick={(event) => event.stopPropagation()}>
+              <button
+                type="button"
+                onClick={() => setSelectedItemImage(null)}
+                className="absolute right-2 top-2 rounded-md bg-black/70 px-2 py-1 text-xs font-semibold text-white"
+              >
+                Close
+              </button>
+              <img src={selectedItemImage.src} alt={selectedItemImage.alt} className="max-h-[85vh] w-full rounded-lg object-contain" />
+            </div>
+          </div>
+        ) : null}
       </div>
     </VendorLayout>
   );
