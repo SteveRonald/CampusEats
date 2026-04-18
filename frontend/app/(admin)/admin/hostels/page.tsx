@@ -1,16 +1,48 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AdminLayout } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { Hostel } from "@/lib/types";
 
+function escapeRegExp(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightMatch(text: string | null | undefined, query: string): ReactNode {
+  const value = text ?? "";
+  const trimmed = query.trim();
+  if (!value || !trimmed) return value;
+
+  const pattern = new RegExp(`(${escapeRegExp(trimmed)})`, "ig");
+  const parts = value.split(pattern);
+
+  return parts.map((part, index) =>
+    part.toLowerCase() === trimmed.toLowerCase() ? (
+      <mark key={`${part}-${index}`} className="rounded bg-amber-100 px-0.5 text-[#1F2937]">
+        {part}
+      </mark>
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    )
+  );
+}
+
 export default function AdminHostelsPage() {
   const [items, setItems] = useState<Hostel[]>([]);
   const [name, setName] = useState("");
+  const [search, setSearch] = useState("");
   const [drafts, setDrafts] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<number | "create" | null>(null);
+
+  const normalizedSearch = search.trim().toLowerCase();
+  const visibleItems = items.filter((item) => {
+    if (!normalizedSearch) return true;
+    const statusLabel = item.is_active ? "active" : "inactive";
+    const haystack = `${item.id} ${item.name} ${statusLabel}`.toLowerCase();
+    return haystack.includes(normalizedSearch);
+  });
 
   const load = async () => {
     try {
@@ -70,8 +102,19 @@ export default function AdminHostelsPage() {
           </div>
         </div>
 
+        <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <label className="mb-1 block text-sm font-semibold text-[#1F2937]">Search hostels</label>
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search by hostel name, id, or status"
+            className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
         <div className="space-y-3">
-          {items.map((item) => (
+          {visibleItems.map((item) => (
             <div key={item.id} className="rounded-xl border border-slate-200 bg-white p-4">
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                 <div className="flex-1">
@@ -81,6 +124,7 @@ export default function AdminHostelsPage() {
                     onChange={(event) => setDrafts((current) => ({ ...current, [item.id]: event.target.value }))}
                     className="w-full rounded-lg border border-slate-200 px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30"
                   />
+                  {normalizedSearch ? <p className="mt-1 text-xs text-slate-500">ID: {highlightMatch(String(item.id), normalizedSearch)} | Name: {highlightMatch(item.name, normalizedSearch)}</p> : null}
                 </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <button

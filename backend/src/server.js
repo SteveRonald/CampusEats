@@ -9,6 +9,7 @@ import authRouter from "./routes/auth.js";
 import locationsRouter from "./routes/locations.js";
 import adminLocationsRouter from "./routes/adminLocations.js";
 import uploadsRouter from "./routes/uploads.js";
+import metaRouter from "./routes/meta.js";
 import { ensureDeliverySchema } from "./db/bootstrap.js";
 
 dotenv.config();
@@ -41,6 +42,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/meta", metaRouter);
 app.use("/api/locations", locationsRouter);
 app.use("/api/admin", adminLocationsRouter);
 app.use("/api/orders", ordersRouter);

@@ -16,7 +16,9 @@ import {
   VendorDeliveryLocationRecommendation,
   VendorServiceArea,
   VendorRecord,
-  MarketplaceItem
+  MarketplaceItem,
+  AdminMenuReviewRecord,
+  AdminMenuReviewResponse
 } from "@/lib/types";
 
 function resolveApiUrl() {
@@ -149,6 +151,28 @@ export const client = {
   toggleVendor: (vendorId: number) => api<VendorRecord>(`/api/vendors/${vendorId}/toggle`, { method: "PATCH" }),
   updateVendorVerification: (vendorId: number, payload: { status: "pending" | "approved" | "rejected"; notes?: string }) =>
     api<VendorRecord>(`/api/vendors/${vendorId}/verification`, { method: "PATCH", body: JSON.stringify(payload) }),
+  adminMenuReview: (
+    search?: string,
+    status?: "all" | "pending" | "approved" | "rejected",
+    vendorId?: number,
+    page = 1,
+    pageSize = 12
+  ) =>
+    api<AdminMenuReviewResponse>(
+      `/api/vendors/menu/review?${new URLSearchParams(
+        Object.entries({
+          search: search ?? "",
+          status: status ?? "all",
+          vendorId: vendorId ? String(vendorId) : "",
+          page: String(page),
+          pageSize: String(pageSize)
+        }).filter(([, value]) => value)
+      ).toString()}`
+    ),
+  updateMenuVerification: (itemId: number, payload: { status: "pending" | "approved" | "rejected"; notes?: string }) =>
+    api<MenuItemRecord>(`/api/vendors/menu/${itemId}/verification`, { method: "PATCH", body: JSON.stringify(payload) }),
+  publicContactInfo: () =>
+    api<{ supportEmail: string; supportPhone: string; supportHours: string }>("/api/meta/contact"),
   adminSummary: () =>
     api<{ totalOrders: number; activeVendors: number; totalRevenue: number; totalCommission: number; ordersToday: number; transactionsToday: number }>(
       "/api/orders/admin/summary"

@@ -12,6 +12,7 @@ export default function AdminVendorsPage() {
   const [error, setError] = useState<string | null>(null);
   const [updatingVendorId, setUpdatingVendorId] = useState<number | null>(null);
   const [expandedVendorId, setExpandedVendorId] = useState<number | null>(null);
+  const [activeImage, setActiveImage] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -123,7 +124,7 @@ export default function AdminVendorsPage() {
 
                       <div>
                         <p className="text-sm font-semibold text-[#1F2937]">{vendor.location || "No location"}</p>
-                        <p className="text-xs text-slate-500">Pickup {vendor.pickup_time_min}-{vendor.pickup_time_max} min</p>
+                        <p className="text-xs text-slate-500">Delivery estimate {vendor.pickup_time_min}-{vendor.pickup_time_max} min</p>
                       </div>
 
                       <div>
@@ -170,7 +171,7 @@ export default function AdminVendorsPage() {
                           <p className="break-words text-slate-700"><span className="font-semibold text-[#1F2937]">Location:</span> {vendor.location || "-"}</p>
                           <p className="break-words text-slate-700"><span className="font-semibold text-[#1F2937]">M-Pesa:</span> {vendor.mpesa_number || "-"}</p>
                           <p className="break-words text-slate-700">
-                            <span className="font-semibold text-[#1F2937]">Pickup time:</span> {vendor.pickup_time_min}-{vendor.pickup_time_max} min
+                            <span className="font-semibold text-[#1F2937]">Delivery estimate:</span> {vendor.pickup_time_min}-{vendor.pickup_time_max} min
                           </p>
                           <p className="break-words text-slate-700"><span className="font-semibold text-[#1F2937]">Verification:</span> {vendor.verification_status}</p>
                           <p className="break-words text-slate-700"><span className="font-semibold text-[#1F2937]">Account status:</span> {vendor.is_active ? "Active" : "Inactive"}</p>
@@ -179,7 +180,9 @@ export default function AdminVendorsPage() {
                         <div className="space-y-2">
                           <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Business logo</p>
                           {vendor.image_url ? (
-                            <img src={vendor.image_url} alt={`${vendor.stall_name} logo`} className="h-28 w-28 rounded-lg border border-slate-200 object-cover" />
+                            <button type="button" onClick={() => setActiveImage({ src: vendor.image_url ?? "", alt: `${vendor.stall_name} logo` })}>
+                              <img src={vendor.image_url} alt={`${vendor.stall_name} logo`} className="h-28 w-28 rounded-lg border border-slate-200 object-cover" />
+                            </button>
                           ) : (
                             <p className="text-sm text-slate-500">No logo uploaded</p>
                           )}
@@ -188,7 +191,9 @@ export default function AdminVendorsPage() {
                         <div className="space-y-2">
                           <p className="text-xs font-bold uppercase tracking-[0.08em] text-slate-500">Location proof</p>
                           {vendor.location_proof_image_url ? (
-                            <img src={vendor.location_proof_image_url} alt={`${vendor.stall_name} location proof`} className="h-28 w-full rounded-lg border border-slate-200 object-cover" />
+                            <button type="button" onClick={() => setActiveImage({ src: vendor.location_proof_image_url ?? "", alt: `${vendor.stall_name} location proof` })}>
+                              <img src={vendor.location_proof_image_url} alt={`${vendor.stall_name} location proof`} className="h-28 w-full rounded-lg border border-slate-200 object-cover" />
+                            </button>
                           ) : (
                             <p className="text-sm text-slate-500">No location proof uploaded</p>
                           )}
@@ -237,6 +242,12 @@ export default function AdminVendorsPage() {
             </div>
           </div>
         )}
+
+        {activeImage ? (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/70 p-4" onClick={() => setActiveImage(null)}>
+            <img src={activeImage.src} alt={activeImage.alt} className="max-h-[90vh] max-w-[90vw] rounded-lg border border-white/20 object-contain" />
+          </div>
+        ) : null}
       </div>
     </AdminLayout>
   );

@@ -247,5 +247,22 @@ export interface MenuItemRecord {
   category: string;
   image_url: string | null;
   is_available: boolean;
+  verification_status?: "pending" | "approved" | "rejected";
+  verification_notes?: string | null;
+  verified_at?: string | null;
+  verified_by?: number | null;
   order_count: number;
+}
+
+export interface AdminMenuReviewRecord extends MenuItemRecord {
+  vendor_name: string;
+  vendor_image_url: string | null;
+}
+
+export interface AdminMenuReviewResponse {
+  items: AdminMenuReviewRecord[];
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
 }

@@ -1,6 +1,17 @@
 import { query } from "../db/client.js";
 import { hydrateOrders } from "./helpers.js";
 
+function normalizeCategory(input) {
+  return String(input ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase()
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 async function ensureVendorDeliveryLocationConfigured(vendorId) {
   const result = await query(
     `SELECT 1
@@ -636,12 +647,112 @@ export async function getVendorMenu(req, res) {
     }
 
     const result = await query(
-      `SELECT * FROM menu_items WHERE vendor_id = $1 ORDER BY created_at DESC`,
+      `SELECT m.*, COALESCE(m.verification_status, CASE WHEN m.is_available THEN 'approved' ELSE 'pending' END) AS verification_status
+       FROM menu_items m
+       WHERE m.vendor_id = $1
+       ORDER BY m.created_at DESC`,
       [vendorId]
     );
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch menu" });
+  }
+}
+
+export async function getAdminMenuReview(req, res) {
+  try {
+    const search = String(req.query.search ?? "").trim();
+    const status = String(req.query.status ?? "all").trim().toLowerCase();
+    const vendorId = Number(req.query.vendorId);
+    const page = Math.max(1, Number(req.query.page) || 1);
+    const pageSize = Math.min(100, Math.max(1, Number(req.query.pageSize) || 12));
+    const offset = (page - 1) * pageSize;
+
+    const values = [];
+    const conditions = ["1=1"];
+
+    if (["pending", "approved", "rejected"].includes(status)) {
+      values.push(status);
+      conditions.push(`COALESCE(m.verification_status, CASE WHEN m.is_available THEN 'approved' ELSE 'pending' END) = $${values.length}`);
+    }
+
+    if (Number.isFinite(vendorId) && vendorId > 0) {
+      values.push(vendorId);
+      conditions.push(`m.vendor_id = $${values.length}`);
+    }
+
+    if (search) {
+      values.push(`%${search}%`);
+      conditions.push(`(m.name ILIKE $${values.length} OR m.category ILIKE $${values.length} OR v.stall_name ILIKE $${values.length})`);
+    }
+
+    const totalResult = await query(
+      `SELECT COUNT(*)::int AS total
+       FROM menu_items m
+       INNER JOIN vendors v ON v.id = m.vendor_id
+       WHERE ${conditions.join(" AND ")}`,
+      values
+    );
+    const total = totalResult.rows[0]?.total ?? 0;
+
+    const result = await query(
+      `SELECT m.id, m.vendor_id, m.name, m.description, m.price, m.category, m.image_url,
+              m.is_available, m.order_count,
+              COALESCE(m.verification_status, CASE WHEN m.is_available THEN 'approved' ELSE 'pending' END) AS verification_status,
+              m.verification_notes, m.verified_at, m.verified_by,
+              v.stall_name AS vendor_name, v.image_url AS vendor_image_url
+       FROM menu_items m
+       INNER JOIN vendors v ON v.id = m.vendor_id
+       WHERE ${conditions.join(" AND ")}
+       ORDER BY m.created_at DESC
+       LIMIT $${values.length + 1}
+       OFFSET $${values.length + 2}`,
+      [...values, pageSize, offset]
+    );
+
+    res.json({
+      items: result.rows,
+      page,
+      pageSize,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / pageSize))
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch menu review items" });
+  }
+}
+
+export async function updateMenuVerificationStatus(req, res) {
+  try {
+    const itemId = Number(req.params.itemId);
+    const status = String(req.body.status ?? "").toLowerCase();
+    const notes = String(req.body.notes ?? "").trim();
+
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid menu verification status" });
+    }
+
+    const current = await query(`SELECT id FROM menu_items WHERE id = $1 LIMIT 1`, [itemId]);
+    if (!current.rows.length) {
+      return res.status(404).json({ error: "Menu item not found" });
+    }
+
+    const shouldBeAvailable = status === "approved";
+    const result = await query(
+      `UPDATE menu_items
+       SET verification_status = $2,
+           verification_notes = $3,
+           is_available = $4,
+           verified_at = $5,
+           verified_by = $6
+       WHERE id = $1
+       RETURNING *`,
+      [itemId, status, notes || null, shouldBeAvailable, status === "pending" ? null : new Date(), status === "pending" ? null : req.user.id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update menu verification" });
   }
 }
 
@@ -667,11 +778,15 @@ export async function createVendorMenuItem(req, res) {
     }
 
     const { name, description, price, category, imageUrl } = req.body;
+    const normalizedCategory = normalizeCategory(category);
+    if (!normalizedCategory) {
+      return res.status(400).json({ error: "Category is required" });
+    }
     const result = await query(
-      `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO menu_items (vendor_id, name, description, price, category, image_url, verification_status, is_available)
+       VALUES ($1, $2, $3, $4, $5, $6, 'pending', false)
        RETURNING *`,
-      [vendorId, name, description || null, Number(price), category, imageUrl || null]
+      [vendorId, name, description || null, Number(price), normalizedCategory, imageUrl || null]
     );
     res.status(201).json(result.rows[0]);
   } catch (error) {
@@ -705,12 +820,38 @@ export async function updateVendorMenuItem(req, res) {
     }
 
     const next = { ...current.rows[0], ...req.body };
+    const normalizedCategory = normalizeCategory(next.category);
+    if (!normalizedCategory) {
+      return res.status(400).json({ error: "Category is required" });
+    }
+    const isVendorUpdate = req.user.role === "vendor";
     const result = await query(
       `UPDATE menu_items
-       SET name = $2, description = $3, price = $4, category = $5, image_url = $6, is_available = $7
+       SET name = $2,
+           description = $3,
+           price = $4,
+           category = $5,
+           image_url = $6,
+           is_available = $7,
+           verification_status = $8,
+           verification_notes = $9,
+           verified_at = $10,
+           verified_by = $11
        WHERE id = $1
        RETURNING *`,
-      [Number(req.params.itemId), next.name, next.description, next.price, next.category, next.imageUrl ?? next.image_url, next.isAvailable ?? next.is_available]
+      [
+        Number(req.params.itemId),
+        next.name,
+        next.description,
+        next.price,
+        normalizedCategory,
+        next.imageUrl ?? next.image_url,
+        isVendorUpdate ? false : next.isAvailable ?? next.is_available,
+        isVendorUpdate ? "pending" : next.verification_status ?? current.rows[0].verification_status,
+        isVendorUpdate ? "Awaiting admin menu approval." : next.verification_notes ?? current.rows[0].verification_notes,
+        isVendorUpdate ? null : next.verified_at ?? current.rows[0].verified_at,
+        isVendorUpdate ? null : next.verified_by ?? current.rows[0].verified_by
+      ]
     );
     res.json(result.rows[0]);
   } catch (error) {

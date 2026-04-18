@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { MessageCircle } from "lucide-react";
 import { AdminLayout } from "@/components/Layout";
 import { useToast } from "@/components/providers";
@@ -36,12 +36,36 @@ const STATUS_ACTIONS: Record<string, { next: string; label: string; btnClass: st
   ready: { next: "completed", label: "Mark completed", btnClass: "bg-gray-700 text-white" }
 };
 
+function escapeRegExp(input: string) {
+  return input.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function highlightMatch(text: string | null | undefined, query: string): ReactNode {
+  const value = text ?? "";
+  const trimmed = query.trim();
+  if (!value || !trimmed) return value;
+
+  const pattern = new RegExp(`(${escapeRegExp(trimmed)})`, "ig");
+  const parts = value.split(pattern);
+
+  return parts.map((part, index) =>
+    part.toLowerCase() === trimmed.toLowerCase() ? (
+      <mark key={`${part}-${index}`} className="rounded bg-amber-100 px-0.5 text-[#1F2937]">
+        {part}
+      </mark>
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    )
+  );
+}
+
 export default function AdminOrdersPage() {
   const { toast } = useToast();
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "completed">("all");
+  const [search, setSearch] = useState("");
   const [updatingOrderId, setUpdatingOrderId] = useState<number | null>(null);
 
   useEffect(() => {
@@ -64,10 +88,30 @@ export default function AdminOrdersPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const normalizedSearch = search.trim().toLowerCase();
   const visibleOrders = orders.filter((order) => {
     if (filter === "active") return ["paid", "preparing", "ready"].includes(order.status);
     if (filter === "completed") return order.status === "completed";
     return true;
+  }).filter((order) => {
+    if (!normalizedSearch) return true;
+
+    const searchableParts = [
+      String(order.id),
+      order.public_id ?? "",
+      order.vendor_name,
+      order.student_name,
+      order.status,
+      getStatusLabel(order.status),
+      order.pickup_code,
+      order.vendor_location ?? "",
+      order.hostel_name ?? "",
+      order.service_area_name ?? "",
+      ...(order.items?.map((item) => item.menu_item_name) ?? [])
+    ];
+
+    const haystack = searchableParts.join(" ").toLowerCase();
+    return haystack.includes(normalizedSearch);
   });
 
   const updateOrderStatus = async (orderId: number, nextStatus: string) => {
@@ -117,6 +161,16 @@ export default function AdminOrdersPage() {
           ))}
         </div>
 
+        <div className="mb-4">
+          <input
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Search order #, vendor, student, status, pickup code, item"
+            className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30"
+          />
+        </div>
+
         {error ? <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
 
         {loading ? (
@@ -135,8 +189,8 @@ export default function AdminOrdersPage() {
                 <article key={order.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-black text-[#1F2937]">#{order.id}</p>
-                      <p className="text-xs text-slate-500">{order.vendor_name}</p>
+                      <p className="text-sm font-black text-[#1F2937]">#{highlightMatch(String(order.id), normalizedSearch)}</p>
+                      <p className="text-xs text-slate-500">{highlightMatch(order.vendor_name, normalizedSearch)}</p>
                       <p className="text-[11px] text-slate-500">{order.vendor_location || "No location"}</p>
                     </div>
                     <p className="text-sm font-bold text-primary">{formatKES(order.total_amount)}</p>
@@ -144,15 +198,15 @@ export default function AdminOrdersPage() {
 
                   <div className="mt-3 grid gap-2 text-sm">
                     <div>
-                      <p className="font-semibold text-[#1F2937]">{order.student_name}</p>
+                      <p className="font-semibold text-[#1F2937]">{highlightMatch(order.student_name, normalizedSearch)}</p>
                       <p className="text-[11px] text-slate-500">{formatOrderDateTime(order.created_at)}</p>
-                      <p className="text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
+                      <p className="text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{highlightMatch(order.pickup_code, normalizedSearch)}</span></p>
                       {order.delivery_details?.mode === "other" ? (
                         <p className="text-[11px] text-amber-700">Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}</p>
                       ) : null}
                     </div>
 
-                    <p className="text-sm text-slate-600">{order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", ")}</p>
+                    <p className="text-sm text-slate-600">{highlightMatch(order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", "), normalizedSearch)}</p>
                   </div>
 
                   <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -220,24 +274,24 @@ export default function AdminOrdersPage() {
                 <div className="divide-y divide-slate-200">
                   {visibleOrders.map((order) => (
                     <article key={order.id} className="grid grid-cols-[84px_170px_150px_150px_minmax(220px,1fr)_110px_180px] items-center gap-2 px-3 py-3">
-                      <p className="text-sm font-black text-[#1F2937]">#{order.id}</p>
+                      <p className="text-sm font-black text-[#1F2937]">#{highlightMatch(String(order.id), normalizedSearch)}</p>
 
                       <p className="text-xs text-slate-500">{formatOrderDateTime(order.created_at)}</p>
 
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#1F2937]">{order.vendor_name}</p>
+                        <p className="truncate text-sm font-semibold text-[#1F2937]">{highlightMatch(order.vendor_name, normalizedSearch)}</p>
                         <p className="truncate text-xs text-slate-500">{order.vendor_location || "No location"}</p>
                       </div>
 
                       <div className="min-w-0">
-                        <p className="truncate text-sm font-semibold text-[#1F2937]">{order.student_name}</p>
-                        <p className="truncate text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{order.pickup_code}</span></p>
+                        <p className="truncate text-sm font-semibold text-[#1F2937]">{highlightMatch(order.student_name, normalizedSearch)}</p>
+                        <p className="truncate text-xs text-slate-500">Pickup code: <span className="font-mono text-[#1F2937]">{highlightMatch(order.pickup_code, normalizedSearch)}</span></p>
                         {order.delivery_details?.mode === "other" ? (
                           <p className="truncate text-[11px] text-amber-700">Other place: {order.delivery_details.otherLocationName ?? "Unspecified"}</p>
                         ) : null}
                       </div>
 
-                      <p className="truncate text-sm text-slate-600">{order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", ")}</p>
+                      <p className="truncate text-sm text-slate-600">{highlightMatch(order.items.map((item) => `${item.menu_item_name} x${item.quantity}`).join(", "), normalizedSearch)}</p>
 
                       <p className="text-sm font-bold text-primary">{formatKES(order.total_amount)}</p>
 

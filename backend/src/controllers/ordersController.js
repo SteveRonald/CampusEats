@@ -1,6 +1,21 @@
 import { query } from "../db/client.js";
 import { hydrateOrders } from "./helpers.js";
 
+function normalizeCategoryKey(input) {
+  return String(input ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+function toCategoryLabel(input) {
+  return normalizeCategoryKey(input)
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
+}
+
 async function vendorHasDeliveryLocation(vendorId) {
   const result = await query(
     `SELECT 1
@@ -19,19 +34,20 @@ export async function getMarketplaceFeed(req, res) {
     const values = [];
     const conditions = [
       "m.is_available = true",
+      "COALESCE(m.verification_status, CASE WHEN m.is_available THEN 'approved' ELSE 'pending' END) = 'approved'",
       "v.is_active = true",
       "COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) = 'approved'",
       "NULLIF(BTRIM(COALESCE(v.location_proof_image_url, '')), '') IS NOT NULL"
     ];
 
     if (category) {
-      values.push(category);
-      conditions.push(`m.category = $${values.length}`);
+      values.push(normalizeCategoryKey(category));
+      conditions.push(`LOWER(REGEXP_REPLACE(BTRIM(m.category), '\\s+', ' ', 'g')) = $${values.length}`);
     }
 
     if (search) {
       values.push(`%${search}%`);
-      conditions.push(`m.name ILIKE $${values.length}`);
+      conditions.push(`(m.name ILIKE $${values.length} OR m.category ILIKE $${values.length} OR v.stall_name ILIKE $${values.length})`);
     }
 
     if (serviceAreaId) {
@@ -79,6 +95,7 @@ export async function getPopularMeals(_req, res) {
        FROM menu_items m
        INNER JOIN vendors v ON v.id = m.vendor_id
        WHERE m.is_available = true
+         AND COALESCE(m.verification_status, CASE WHEN m.is_available THEN 'approved' ELSE 'pending' END) = 'approved'
          AND v.is_active = true
          AND COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) = 'approved'
          AND NULLIF(BTRIM(COALESCE(v.location_proof_image_url, '')), '') IS NOT NULL
@@ -94,12 +111,18 @@ export async function getPopularMeals(_req, res) {
 export async function getCategories(_req, res) {
   try {
     const result = await query(
-      `SELECT DISTINCT category
-       FROM menu_items
-       WHERE is_available = true
-       ORDER BY category ASC`
+      `SELECT LOWER(REGEXP_REPLACE(BTRIM(m.category), '\\s+', ' ', 'g')) AS category_key
+       FROM menu_items m
+       INNER JOIN vendors v ON v.id = m.vendor_id
+       WHERE m.is_available = true
+         AND COALESCE(m.verification_status, CASE WHEN m.is_available THEN 'approved' ELSE 'pending' END) = 'approved'
+         AND v.is_active = true
+         AND COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) = 'approved'
+         AND NULLIF(BTRIM(COALESCE(v.location_proof_image_url, '')), '') IS NOT NULL
+       GROUP BY category_key
+       ORDER BY category_key ASC`
     );
-    res.json(result.rows.map((row) => row.category));
+    res.json(result.rows.map((row) => toCategoryLabel(row.category_key)).filter(Boolean));
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch categories" });
   }

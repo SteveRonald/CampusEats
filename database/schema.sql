@@ -67,6 +67,10 @@ CREATE TABLE IF NOT EXISTS menu_items (
   price NUMERIC(10, 2) NOT NULL,
   category TEXT NOT NULL,
   image_url TEXT,
+  verification_status TEXT NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'approved', 'rejected')),
+  verification_notes TEXT,
+  verified_at TIMESTAMP,
+  verified_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
   is_available BOOLEAN NOT NULL DEFAULT TRUE,
   order_count INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()

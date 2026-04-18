@@ -12,6 +12,8 @@ import {
   getVendorMenu,
   getVendorOrders,
   getVendorProfile,
+  getAdminMenuReview,
+  updateMenuVerificationStatus,
   updateVendorVerificationStatus,
   updateVendorProfile,
   updateVendorDeliveryLocation,
@@ -49,6 +51,8 @@ router.get("/:id/orders", authenticate, requireRole("vendor", "admin"), getVendo
 router.get("/:id/profile", authenticate, requireRole("vendor", "admin"), getVendorProfile);
 router.patch("/:id/profile", authenticate, requireRole("vendor", "admin"), updateVendorProfile);
 router.patch("/:id/verification", authenticate, requireRole("admin"), updateVendorVerificationStatus);
+router.get("/menu/review", authenticate, requireRole("admin"), getAdminMenuReview);
+router.patch("/menu/:itemId/verification", authenticate, requireRole("admin"), updateMenuVerificationStatus);
 router.get("/:id/earnings", authenticate, requireRole("vendor", "admin"), getVendorEarnings);
 router.get("/:id/menu", authenticate, requireRole("vendor", "admin"), getVendorMenu);
 router.post("/:id/menu", authenticate, requireRole("vendor", "admin"), createVendorMenuItem);

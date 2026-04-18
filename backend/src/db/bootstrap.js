@@ -60,6 +60,10 @@ export async function ensureDeliverySchema() {
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verification_notes TEXT`);
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP`);
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verified_by INTEGER`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS verification_status TEXT`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS verification_notes TEXT`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS verified_by INTEGER`);
   await pool.query(`ALTER TABLE vendors ALTER COLUMN is_active SET DEFAULT FALSE`);
   await pool.query(`
     UPDATE vendors
@@ -81,6 +85,26 @@ export async function ensureDeliverySchema() {
       ) THEN
         ALTER TABLE vendors
         ADD CONSTRAINT vendors_verification_status_check
+        CHECK (verification_status IN ('pending', 'approved', 'rejected'));
+      END IF;
+    END $$;
+  `);
+
+  await pool.query(`
+    UPDATE menu_items
+    SET verification_status = CASE WHEN is_available THEN 'approved' ELSE 'pending' END
+    WHERE verification_status IS NULL
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'menu_items_verification_status_check'
+      ) THEN
+        ALTER TABLE menu_items
+        ADD CONSTRAINT menu_items_verification_status_check
         CHECK (verification_status IN ('pending', 'approved', 'rejected'));
       END IF;
     END $$;

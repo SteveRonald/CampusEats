@@ -123,6 +123,27 @@ function NavLink({ href, active, icon, label, badge }: { href: string; active: b
   );
 }
 
+function PublicFooter() {
+  return (
+    <footer className="mt-8 border-t border-border bg-slate-50/70 px-4 py-6 text-sm text-slate-600 md:px-6 lg:px-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <Link href="/" aria-label="Go to home" className="inline-flex items-center">
+            <Image src="/logo.png" alt="CampusEats" width={128} height={34} className="h-8 w-auto" />
+          </Link>
+          <p className="mt-1 max-w-md text-xs text-slate-500">Campus food ordering built for speed, trust, and reliable delivery windows.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs font-semibold text-slate-600">
+          <Link href="/about" className="hover:text-primary">About</Link>
+          <Link href="/contact" className="hover:text-primary">Contact Us</Link>
+          <Link href="/terms" className="hover:text-primary">Terms</Link>
+          <Link href="/privacy" className="hover:text-primary">Privacy</Link>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
 export function StudentLayout({ children }: { children: React.ReactNode }) {
   const { totalItems } = useCart();
   const pathname = usePathname();
@@ -139,10 +160,13 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
           <SessionActions />
         </header>
 
-        <main className="flex-1 pb-20 md:pb-24">{children}</main>
+        <main className="flex-1 pb-20">{children}</main>
+        <div className="pb-20">
+          <PublicFooter />
+        </div>
 
-        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-6xl -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
-          <div className="flex items-center justify-around py-2">
+        <nav className="pointer-events-none fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+          <div className="pointer-events-auto flex items-center justify-around py-2">
             <NavLink href="/" active={pathname === "/"} icon={<Home className="h-5 w-5" />} label="Home" />
             <NavLink
               href="/cart"
@@ -305,10 +329,13 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
             ) : null}
             {children}
           </main>
+          <div className="px-4 pb-20 md:px-6 md:pb-6 lg:px-8">
+            <PublicFooter />
+          </div>
         </div>
 
-        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
-          <div className="flex items-center justify-around py-2">
+        <nav className="pointer-events-none fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
+          <div className="pointer-events-auto flex items-center justify-around py-2">
             <NavLink
               href="/vendor/dashboard"
               active={pathname === "/vendor/dashboard"}
@@ -341,6 +368,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const adminLinks = [
     { href: "/admin/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, active: pathname === "/admin/dashboard" },
     { href: "/admin/vendors", label: "Vendors", icon: <Store className="h-4 w-4" />, active: pathname === "/admin/vendors" },
+    { href: "/admin/menu-review", label: "Menu Review", icon: <ChefHat className="h-4 w-4" />, active: pathname.startsWith("/admin/menu-review") },
     { href: "/admin/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/admin/orders" },
     { href: "/admin/service-areas", label: "Service Areas", icon: <Home className="h-4 w-4" />, active: pathname.startsWith("/admin/service-areas") },
     { href: "/admin/hostels", label: "Hostels", icon: <User className="h-4 w-4" />, active: pathname.startsWith("/admin/hostels") }
@@ -349,6 +377,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pageTitle =
     pathname === "/admin/vendors"
       ? "Vendors"
+      : pathname.startsWith("/admin/menu-review")
+        ? "Menu Review"
       : pathname === "/admin/orders"
         ? "Orders"
         : pathname.startsWith("/admin/service-areas")
@@ -413,10 +443,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           <main className="flex-1 px-4 pb-20 md:px-6 md:pb-6 lg:px-8">{children}</main>
+          <div className="px-4 pb-20 md:px-6 md:pb-6 lg:px-8">
+            <PublicFooter />
+          </div>
         </div>
 
-        <nav className="fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
-          <div className="flex items-center justify-around py-2">
+        <nav className="pointer-events-none fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
+          <div className="pointer-events-auto flex items-center justify-around py-2">
             <NavLink
               href="/admin/dashboard"
               active={pathname === "/admin/dashboard"}
@@ -424,6 +457,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               label="Dashboard"
             />
             <NavLink href="/admin/vendors" active={pathname === "/admin/vendors"} icon={<Store className="h-5 w-5" />} label="Vendors" />
+            <NavLink href="/admin/menu-review" active={pathname.startsWith("/admin/menu-review")} icon={<ChefHat className="h-5 w-5" />} label="Menu" />
             <NavLink href="/admin/orders" active={pathname === "/admin/orders"} icon={<ClipboardList className="h-5 w-5" />} label="Orders" />
             <NavLink href="/admin/service-areas" active={pathname.startsWith("/admin/service-areas")} icon={<Home className="h-5 w-5" />} label="Areas" />
           </div>

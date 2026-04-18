@@ -300,7 +300,7 @@ export default function AuthPage() {
 
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="mb-1.5 block text-sm font-bold text-foreground">Fastest pickup time (minutes)</label>
+                    <label className="mb-1.5 block text-sm font-bold text-foreground">Fastest delivery estimate (minutes)</label>
                     <input
                       type="number"
                       min={5}
@@ -309,10 +309,10 @@ export default function AuthPage() {
                       onChange={(event) => setSignupForm((current) => ({ ...current, pickupTimeMin: event.target.value }))}
                       className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">If you are very quick, what is the shortest time?</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">If things are moving quickly, what is your shortest delivery estimate?</p>
                   </div>
                   <div>
-                    <label className="mb-1.5 block text-sm font-bold text-foreground">Longest pickup time (minutes)</label>
+                    <label className="mb-1.5 block text-sm font-bold text-foreground">Longest delivery estimate (minutes)</label>
                     <input
                       type="number"
                       min={5}
@@ -321,10 +321,10 @@ export default function AuthPage() {
                       onChange={(event) => setSignupForm((current) => ({ ...current, pickupTimeMax: event.target.value }))}
                       className="w-full rounded-2xl border border-border bg-white px-4 py-3 text-[15px] outline-none focus:ring-2 focus:ring-primary/30"
                     />
-                    <p className="mt-1 text-[11px] text-muted-foreground">On a busy period, what is the longest it may take?</p>
+                    <p className="mt-1 text-[11px] text-muted-foreground">During busy periods, what is your longest delivery estimate?</p>
                   </div>
                 </div>
-                <p className="-mt-1 text-xs text-muted-foreground">Use a range like 10 to 25 minutes so students know what to expect.</p>
+                <p className="-mt-1 text-xs text-muted-foreground">Use a range like 10 to 25 minutes so students understand the likely delivery window.</p>
               </>
             )}
 
