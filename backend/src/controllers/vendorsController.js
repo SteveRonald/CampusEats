@@ -13,9 +13,64 @@ async function ensureVendorDeliveryLocationConfigured(vendorId) {
   return result.rows.length > 0;
 }
 
+async function ensureVendorApproved(vendorId) {
+  const result = await query(
+    `SELECT is_active,
+            COALESCE(verification_status, CASE WHEN is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
+            location_proof_image_url
+     FROM vendors
+     WHERE id = $1
+     LIMIT 1`,
+    [vendorId]
+  );
+
+  if (!result.rows.length) {
+    return { ok: false, status: 404, error: "Vendor not found" };
+  }
+
+  const vendor = result.rows[0];
+  const isApproved = vendor.is_active && vendor.verification_status === "approved";
+  const hasLocationProof = Boolean(vendor.location_proof_image_url && String(vendor.location_proof_image_url).trim());
+
+  if (isApproved) {
+    if (!hasLocationProof) {
+      return {
+        ok: false,
+        status: 403,
+        error: "Upload a valid location proof image in Business Profile before continuing."
+      };
+    }
+
+    return { ok: true };
+  }
+
+  if (vendor.verification_status === "rejected") {
+    return {
+      ok: false,
+      status: 403,
+      error: "Your account verification was rejected. Update your proof details in Business Profile and contact admin."
+    };
+  }
+
+  return {
+    ok: false,
+    status: 403,
+    error: "Your account is pending admin approval. Complete your verification details in Business Profile."
+  };
+}
+
 export async function listVendors(_req, res) {
   try {
-    const result = await query(`SELECT * FROM vendors ORDER BY created_at DESC`);
+    const result = await query(
+      `SELECT v.id, v.user_id, v.stall_name, v.description, v.mpesa_number, v.image_url, v.location_proof_image_url,
+              v.location, v.pickup_time_min, v.pickup_time_max, v.is_active,
+              COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
+              v.verification_notes, v.verified_at, v.verified_by,
+              u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
+       FROM vendors v
+       INNER JOIN users u ON u.id = v.user_id
+       ORDER BY v.created_at DESC`
+    );
     res.json(result.rows);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch vendors" });
@@ -57,7 +112,9 @@ export async function getVendorProfile(req, res) {
 
     const result = await query(
       `SELECT v.id, v.user_id, v.stall_name, v.description, v.mpesa_number, v.image_url, v.location,
-              v.pickup_time_min, v.pickup_time_max, v.is_active,
+              v.location_proof_image_url, v.pickup_time_min, v.pickup_time_max, v.is_active,
+              COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
+              v.verification_notes, v.verified_at, v.verified_by,
               u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
        FROM vendors v
        INNER JOIN users u ON u.id = v.user_id
@@ -310,6 +367,13 @@ export async function updateVendorServiceAreas(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    if (req.user?.role === "vendor") {
+      const approval = await ensureVendorApproved(vendorId);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
+    }
+
     const serviceAreaIds = Array.isArray(req.body.serviceAreaIds) ? req.body.serviceAreaIds.map((value) => Number(value)).filter(Boolean) : [];
 
     await query(`DELETE FROM vendor_service_areas WHERE vendor_id = $1`, [vendorId]);
@@ -337,6 +401,13 @@ export async function createVendorDeliveryLocation(req, res) {
     const vendorId = Number(req.params.id);
     if (req.user?.role === "vendor" && req.user.vendorId !== vendorId) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (req.user?.role === "vendor") {
+      const approval = await ensureVendorApproved(vendorId);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
     }
 
     const label = String(req.body.label ?? "").trim();
@@ -378,6 +449,13 @@ export async function updateVendorDeliveryLocation(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    if (req.user?.role === "vendor") {
+      const approval = await ensureVendorApproved(current.rows[0].vendor_id);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
+    }
+
     const label = String(req.body.label ?? current.rows[0].label).trim();
     const location = String(req.body.location ?? current.rows[0].location).trim();
     const serviceAreaId = Number(req.body.serviceAreaId ?? current.rows[0].service_area_id);
@@ -415,6 +493,13 @@ export async function deleteVendorDeliveryLocation(req, res) {
       return res.status(403).json({ error: "Forbidden" });
     }
 
+    if (req.user?.role === "vendor") {
+      const approval = await ensureVendorApproved(current.rows[0].vendor_id);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
+    }
+
     await query(`DELETE FROM vendor_delivery_locations WHERE id = $1`, [locationId]);
     res.json({ success: true });
   } catch (error) {
@@ -441,7 +526,7 @@ export async function updateVendorProfile(req, res) {
       return res.status(404).json({ error: "Vendor not found" });
     }
 
-    const { ownerName, ownerEmail, ownerPhone, stallName, description, mpesaNumber, location, pickupTimeMin, pickupTimeMax } = req.body;
+    const { ownerName, ownerEmail, ownerPhone, stallName, description, mpesaNumber, location, pickupTimeMin, pickupTimeMax, imageUrl, locationProofImageUrl } = req.body;
 
     if (!ownerName || !ownerEmail || !stallName || !mpesaNumber) {
       return res.status(400).json({ error: "Owner name, owner email, stall name, and M-Pesa number are required" });
@@ -462,6 +547,22 @@ export async function updateVendorProfile(req, res) {
       [existing.rows[0].user_id, String(ownerName).trim(), String(ownerEmail).trim(), ownerPhone ? String(ownerPhone).trim() : null]
     );
 
+    const currentProfile = await query(
+      `SELECT image_url, location_proof_image_url
+       FROM vendors
+       WHERE id = $1
+       LIMIT 1`,
+      [vendorId]
+    );
+
+    const existingImage = String(currentProfile.rows[0]?.image_url ?? "").trim();
+    const existingProof = String(currentProfile.rows[0]?.location_proof_image_url ?? "").trim();
+    const nextProofRaw = typeof locationProofImageUrl === "string" ? locationProofImageUrl : undefined;
+    const nextProof = nextProofRaw === undefined ? existingProof || null : String(nextProofRaw).trim() || existingProof || null;
+
+    const nextImageRaw = typeof imageUrl === "string" ? imageUrl : undefined;
+    const nextImage = nextImageRaw === undefined ? existingImage || null : String(nextImageRaw).trim() || existingImage || null;
+
     await query(
       `UPDATE vendors
        SET stall_name = $2,
@@ -469,7 +570,9 @@ export async function updateVendorProfile(req, res) {
            mpesa_number = $4,
            location = $5,
            pickup_time_min = $6,
-           pickup_time_max = $7
+           pickup_time_max = $7,
+           image_url = $8,
+           location_proof_image_url = $9
        WHERE id = $1`,
       [
         vendorId,
@@ -478,13 +581,17 @@ export async function updateVendorProfile(req, res) {
         String(mpesaNumber).trim(),
         location ? String(location).trim() : null,
         Number(pickupTimeMin) || 10,
-        Number(pickupTimeMax) || 15
+        Number(pickupTimeMax) || 15,
+        nextImage,
+        nextProof
       ]
     );
 
     const refreshed = await query(
       `SELECT v.id, v.user_id, v.stall_name, v.description, v.mpesa_number, v.image_url, v.location,
-              v.pickup_time_min, v.pickup_time_max, v.is_active,
+              v.location_proof_image_url, v.pickup_time_min, v.pickup_time_max, v.is_active,
+              COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
+              v.verification_notes, v.verified_at, v.verified_by,
               u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
        FROM vendors v
        INNER JOIN users u ON u.id = v.user_id
@@ -546,6 +653,13 @@ export async function createVendorMenuItem(req, res) {
     }
 
     if (req.user.role === "vendor") {
+      const approval = await ensureVendorApproved(vendorId);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
+    }
+
+    if (req.user.role === "vendor") {
       const configured = await ensureVendorDeliveryLocationConfigured(vendorId);
       if (!configured) {
         return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });
@@ -574,6 +688,13 @@ export async function updateVendorMenuItem(req, res) {
 
     if (req.user.role === "vendor" && req.user.vendorId !== current.rows[0].vendor_id) {
       return res.status(403).json({ error: "Forbidden" });
+    }
+
+    if (req.user.role === "vendor") {
+      const approval = await ensureVendorApproved(current.rows[0].vendor_id);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
     }
 
     if (req.user.role === "vendor") {
@@ -609,6 +730,13 @@ export async function deleteVendorMenuItem(req, res) {
     }
 
     if (req.user.role === "vendor") {
+      const approval = await ensureVendorApproved(current.rows[0].vendor_id);
+      if (!approval.ok) {
+        return res.status(approval.status).json({ error: approval.error });
+      }
+    }
+
+    if (req.user.role === "vendor") {
       const configured = await ensureVendorDeliveryLocationConfigured(current.rows[0].vendor_id);
       if (!configured) {
         return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });
@@ -624,15 +752,60 @@ export async function deleteVendorMenuItem(req, res) {
 
 export async function toggleVendor(req, res) {
   try {
+    const vendorId = Number(req.params.id);
+    const current = await query(`SELECT id, is_active, COALESCE(verification_status, 'pending') AS verification_status FROM vendors WHERE id = $1 LIMIT 1`, [vendorId]);
+
+    if (!current.rows.length) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    if (!current.rows[0].is_active && current.rows[0].verification_status !== "approved") {
+      return res.status(400).json({ error: "Approve vendor verification before activation." });
+    }
+
     const result = await query(
       `UPDATE vendors
        SET is_active = NOT is_active
        WHERE id = $1
        RETURNING *`,
-      [Number(req.params.id)]
+      [vendorId]
     );
     res.json(result.rows[0]);
   } catch (error) {
     res.status(500).json({ error: "Failed to toggle vendor" });
+  }
+}
+
+export async function updateVendorVerificationStatus(req, res) {
+  try {
+    const vendorId = Number(req.params.id);
+    const status = String(req.body.status ?? "").toLowerCase();
+    const notes = String(req.body.notes ?? "").trim();
+
+    if (!["pending", "approved", "rejected"].includes(status)) {
+      return res.status(400).json({ error: "Invalid verification status" });
+    }
+
+    const current = await query(`SELECT id FROM vendors WHERE id = $1 LIMIT 1`, [vendorId]);
+    if (!current.rows.length) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    const shouldActivate = status === "approved";
+    const result = await query(
+      `UPDATE vendors
+       SET verification_status = $2,
+           verification_notes = $3,
+           is_active = $4,
+           verified_at = $5,
+           verified_by = $6
+       WHERE id = $1
+       RETURNING *`,
+      [vendorId, status, notes || null, shouldActivate, status === "pending" ? null : new Date(), status === "pending" ? null : req.user.id]
+    );
+
+    res.json(result.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update vendor verification" });
   }
 }

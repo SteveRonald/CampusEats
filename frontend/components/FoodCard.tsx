@@ -14,6 +14,7 @@ interface FoodCardProps {
   isAvailable: boolean;
   vendorId: number;
   vendorName: string;
+  vendorLogoUrl?: string | null;
   pickupTimeMin?: number | null;
   pickupTimeMax?: number | null;
 }
@@ -27,6 +28,7 @@ export function FoodCard({
   isAvailable,
   vendorId,
   vendorName,
+  vendorLogoUrl,
   pickupTimeMin = 10,
   pickupTimeMax = 15
 }: FoodCardProps) {
@@ -49,7 +51,14 @@ export function FoodCard({
         )}
       </div>
       <div className="p-3 flex flex-col flex-1">
-        <p className="text-[11px] text-primary font-semibold uppercase tracking-wide mb-0.5">{vendorName}</p>
+        <div className="mb-0.5 flex items-center gap-1.5">
+          {vendorLogoUrl ? (
+            <img src={vendorLogoUrl} alt={`${vendorName} logo`} className="h-4 w-4 rounded-full border border-orange-100 object-cover" />
+          ) : (
+            <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-orange-100 text-[9px] font-black text-primary">V</span>
+          )}
+          <p className="text-[11px] text-primary font-semibold uppercase tracking-wide">{vendorName}</p>
+        </div>
         <h3 className="font-bold text-sm text-foreground leading-tight">{name}</h3>
         {description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{description}</p>}
         <div className="mt-auto pt-2 flex items-center justify-between">

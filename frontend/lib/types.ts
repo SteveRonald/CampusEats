@@ -38,6 +38,8 @@ export interface UpdateVendorProfilePayload {
   description?: string;
   mpesaNumber: string;
   location?: string;
+  imageUrl?: string;
+  locationProofImageUrl?: string;
   pickupTimeMin: number;
   pickupTimeMax: number;
 }
@@ -88,6 +90,7 @@ export interface MarketplaceItem {
   order_count: number;
   vendor_name: string;
   vendor_location: string | null;
+  vendor_image_url?: string | null;
   pickup_time_min: number;
   pickup_time_max: number;
 }
@@ -200,10 +203,15 @@ export interface VendorBusinessProfile {
   description: string | null;
   mpesa_number: string;
   image_url: string | null;
+  location_proof_image_url: string | null;
   location: string | null;
   pickup_time_min: number;
   pickup_time_max: number;
   is_active: boolean;
+  verification_status: "pending" | "approved" | "rejected";
+  verification_notes: string | null;
+  verified_at: string | null;
+  verified_by: number | null;
   owner_name: string;
   owner_email: string;
   owner_phone: string | null;
@@ -216,10 +224,18 @@ export interface VendorRecord {
   description: string | null;
   mpesa_number: string;
   image_url: string | null;
+  location_proof_image_url: string | null;
   location: string | null;
   pickup_time_min: number;
   pickup_time_max: number;
   is_active: boolean;
+  verification_status: "pending" | "approved" | "rejected";
+  verification_notes: string | null;
+  verified_at: string | null;
+  verified_by: number | null;
+  owner_name?: string | null;
+  owner_email?: string | null;
+  owner_phone?: string | null;
 }
 
 export interface MenuItemRecord {

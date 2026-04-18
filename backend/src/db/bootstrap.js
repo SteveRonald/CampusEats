@@ -55,6 +55,36 @@ export async function ensureDeliverySchema() {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS hostel_id INTEGER`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS room_number TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_area_id INTEGER`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS location_proof_image_url TEXT`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verification_status TEXT`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verification_notes TEXT`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verified_by INTEGER`);
+  await pool.query(`ALTER TABLE vendors ALTER COLUMN is_active SET DEFAULT FALSE`);
+  await pool.query(`
+    UPDATE vendors
+    SET verification_status = CASE WHEN is_active THEN 'approved' ELSE 'pending' END
+    WHERE verification_status IS NULL
+  `);
+  await pool.query(`
+    UPDATE vendors
+    SET is_active = false
+    WHERE verification_status <> 'approved'
+  `);
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1
+        FROM pg_constraint
+        WHERE conname = 'vendors_verification_status_check'
+      ) THEN
+        ALTER TABLE vendors
+        ADD CONSTRAINT vendors_verification_status_check
+        CHECK (verification_status IN ('pending', 'approved', 'rejected'));
+      END IF;
+    END $$;
+  `);
 
   await pool.query(`
     UPDATE orders

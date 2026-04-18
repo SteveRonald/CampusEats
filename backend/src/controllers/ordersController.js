@@ -17,7 +17,12 @@ export async function getMarketplaceFeed(req, res) {
   try {
     const { category, search, serviceAreaId } = req.query;
     const values = [];
-    const conditions = ["m.is_available = true", "v.is_active = true"];
+    const conditions = [
+      "m.is_available = true",
+      "v.is_active = true",
+      "COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) = 'approved'",
+      "NULLIF(BTRIM(COALESCE(v.location_proof_image_url, '')), '') IS NOT NULL"
+    ];
 
     if (category) {
       values.push(category);
@@ -37,7 +42,7 @@ export async function getMarketplaceFeed(req, res) {
     const itemsResult = await query(
       `SELECT m.id, m.vendor_id, m.name, m.description, m.price, m.category, m.image_url, m.is_available,
               m.order_count, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max
+              v.image_url AS vendor_image_url, v.pickup_time_min, v.pickup_time_max
        FROM menu_items m
        INNER JOIN vendors v ON v.id = m.vendor_id
        WHERE ${conditions.join(" AND ")}
@@ -70,10 +75,13 @@ export async function getPopularMeals(_req, res) {
     const result = await query(
       `SELECT m.id, m.vendor_id, m.name, m.description, m.price, m.category, m.image_url, m.is_available,
               m.order_count, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.pickup_time_min, v.pickup_time_max
+              v.image_url AS vendor_image_url, v.pickup_time_min, v.pickup_time_max
        FROM menu_items m
        INNER JOIN vendors v ON v.id = m.vendor_id
-       WHERE m.is_available = true AND v.is_active = true
+       WHERE m.is_available = true
+         AND v.is_active = true
+         AND COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) = 'approved'
+         AND NULLIF(BTRIM(COALESCE(v.location_proof_image_url, '')), '') IS NOT NULL
        ORDER BY m.order_count DESC, m.created_at DESC
        LIMIT 8`
     );
@@ -173,6 +181,28 @@ export async function updateOrderStatus(req, res) {
     }
 
     if (req.user.role === "vendor") {
+      const verification = await query(
+        `SELECT is_active,
+                COALESCE(verification_status, CASE WHEN is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
+                location_proof_image_url
+         FROM vendors
+         WHERE id = $1
+         LIMIT 1`,
+        [req.user.vendorId]
+      );
+
+      if (!verification.rows.length) {
+        return res.status(404).json({ error: "Vendor not found" });
+      }
+
+      const vendor = verification.rows[0];
+      const hasLocationProof = Boolean(vendor.location_proof_image_url && String(vendor.location_proof_image_url).trim());
+      if (!vendor.is_active || vendor.verification_status !== "approved" || !hasLocationProof) {
+        return res
+          .status(403)
+          .json({ error: "Complete admin verification and upload location proof in Business Profile before performing vendor actions." });
+      }
+
       const hasDeliveryLocation = await vendorHasDeliveryLocation(req.user.vendorId);
       if (!hasDeliveryLocation) {
         return res.status(400).json({ error: "Set at least one delivery location first under Delivery Locations." });

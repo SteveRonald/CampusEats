@@ -158,6 +158,7 @@ export default function HomePage() {
                     isAvailable={item.is_available}
                     vendorId={item.vendor_id}
                     vendorName={item.vendor_name}
+                    vendorLogoUrl={item.vendor_image_url}
                     pickupTimeMin={item.pickup_time_min}
                     pickupTimeMax={item.pickup_time_max}
                   />
@@ -208,6 +209,7 @@ export default function HomePage() {
                 isAvailable={item.is_available}
                 vendorId={item.vendor_id}
                 vendorName={item.vendor_name}
+                vendorLogoUrl={item.vendor_image_url}
                 pickupTimeMin={item.pickup_time_min}
                 pickupTimeMax={item.pickup_time_max}
               />

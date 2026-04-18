@@ -147,6 +147,8 @@ export const client = {
   deleteHostel: (id: number) => api<{ success: boolean }>(`/api/admin/hostels/${id}`, { method: 'DELETE' }),
   vendors: () => api<VendorRecord[]>("/api/vendors"),
   toggleVendor: (vendorId: number) => api<VendorRecord>(`/api/vendors/${vendorId}/toggle`, { method: "PATCH" }),
+  updateVendorVerification: (vendorId: number, payload: { status: "pending" | "approved" | "rejected"; notes?: string }) =>
+    api<VendorRecord>(`/api/vendors/${vendorId}/verification`, { method: "PATCH", body: JSON.stringify(payload) }),
   adminSummary: () =>
     api<{ totalOrders: number; activeVendors: number; totalRevenue: number; totalCommission: number; ordersToday: number; transactionsToday: number }>(
       "/api/orders/admin/summary"

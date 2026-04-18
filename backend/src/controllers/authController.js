@@ -103,8 +103,8 @@ export async function register(req, res) {
 
     if (role === "vendor") {
       const vendorResult = await client.query(
-        `INSERT INTO vendors (user_id, stall_name, description, mpesa_number, image_url, location, pickup_time_min, pickup_time_max, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+        `INSERT INTO vendors (user_id, stall_name, description, mpesa_number, image_url, location, pickup_time_min, pickup_time_max, verification_status, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending', false)
          RETURNING id`,
         [
           user.id,

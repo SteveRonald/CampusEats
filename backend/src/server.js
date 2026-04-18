@@ -8,6 +8,7 @@ import webhookRouter from "./routes/webhook.js";
 import authRouter from "./routes/auth.js";
 import locationsRouter from "./routes/locations.js";
 import adminLocationsRouter from "./routes/adminLocations.js";
+import uploadsRouter from "./routes/uploads.js";
 import { ensureDeliverySchema } from "./db/bootstrap.js";
 
 dotenv.config();
@@ -33,7 +34,7 @@ app.use(
     }
   })
 );
-app.use(express.json());
+app.use(express.json({ limit: "8mb" }));
 
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
@@ -46,6 +47,7 @@ app.use("/api/orders", ordersRouter);
 app.use("/api/vendors", vendorsRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/webhook", webhookRouter);
+app.use("/api/uploads", uploadsRouter);
 
 const port = Number(process.env.PORT ?? 4000);
 

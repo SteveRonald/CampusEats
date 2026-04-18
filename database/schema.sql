@@ -15,10 +15,15 @@ CREATE TABLE IF NOT EXISTS vendors (
   description TEXT,
   mpesa_number TEXT NOT NULL,
   image_url TEXT,
+  location_proof_image_url TEXT,
   location TEXT,
   pickup_time_min INTEGER NOT NULL DEFAULT 10,
   pickup_time_max INTEGER NOT NULL DEFAULT 15,
-  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  verification_status TEXT NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'approved', 'rejected')),
+  verification_notes TEXT,
+  verified_at TIMESTAMP,
+  verified_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+  is_active BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 

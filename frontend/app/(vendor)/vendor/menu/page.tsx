@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { VendorLayout } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
+import { uploadCompressedImage } from "@/lib/storageUpload";
 import { MenuItemRecord } from "@/lib/types";
 import { formatKES } from "@/lib/utils";
 
@@ -30,7 +31,9 @@ export default function VendorMenuPage() {
   const [form, setForm] = useState<MenuFormState>(emptyForm);
   const [editId, setEditId] = useState<number | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -59,20 +62,39 @@ export default function VendorMenuPage() {
   const resetForm = () => {
     setForm(emptyForm);
     setPreview(null);
+    setLocalPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
     setEditId(null);
   };
 
   const uploadImageFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!vendorId) {
+      setErrorMessage("Vendor account is not available for upload");
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      setForm((current) => ({ ...current, imageUrl: result }));
-      setPreview(result);
-    };
-    reader.readAsDataURL(file);
+    const immediatePreview = URL.createObjectURL(file);
+    setLocalPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return immediatePreview;
+    });
+
+    setUploadingImage(true);
+    setErrorMessage(null);
+
+    try {
+      const uploaded = await uploadCompressedImage(file, "menu-items", String(vendorId));
+      setForm((current) => ({ ...current, imageUrl: uploaded.url }));
+      setPreview(uploaded.url);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Failed to upload image");
+    } finally {
+      setUploadingImage(false);
+    }
   };
 
   const startEdit = (item: MenuItemRecord) => {
@@ -84,8 +106,18 @@ export default function VendorMenuPage() {
       category: item.category,
       imageUrl: item.image_url ?? ""
     });
+    setLocalPreview((current) => {
+      if (current) URL.revokeObjectURL(current);
+      return null;
+    });
     setPreview(item.image_url ?? null);
   };
+
+  useEffect(() => {
+    return () => {
+      if (localPreview) URL.revokeObjectURL(localPreview);
+    };
+  }, [localPreview]);
 
   const submitForm = async () => {
     if (!vendorId) return;
@@ -183,10 +215,19 @@ export default function VendorMenuPage() {
                   type="file"
                   accept="image/*"
                   onChange={uploadImageFile}
+                  disabled={uploadingImage}
                   className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm outline-none file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-bold file:text-white"
                 />
-                <p className="mt-1 text-[11px] text-slate-500">Upload an image file. It will be stored with the item.</p>
+                <p className="mt-1 text-[11px] text-slate-500">
+                  {uploadingImage ? "Compressing and uploading image..." : "Images are automatically compressed before upload to save storage."}
+                </p>
               </div>
+
+              {localPreview ? (
+                <div className="overflow-hidden rounded-md border border-slate-200">
+                  <img src={localPreview} alt="Food local preview" className="h-36 w-full object-cover" />
+                </div>
+              ) : null}
 
               {preview ? (
                 <div className="overflow-hidden rounded-md border border-slate-200">
@@ -197,10 +238,10 @@ export default function VendorMenuPage() {
             <div className="mt-4 flex flex-col gap-2 sm:items-center">
               <button
                 onClick={submitForm}
-                disabled={loading}
+                disabled={loading || uploadingImage}
                 className="w-full rounded-md bg-primary py-2.5 text-sm font-bold text-white sm:w-[220px]"
               >
-                {loading ? "Saving..." : editId ? "Save changes" : "Add item"}
+                {uploadingImage ? "Uploading image..." : loading ? "Saving..." : editId ? "Save changes" : "Add item"}
               </button>
               {editId ? (
                 <button

@@ -174,6 +174,7 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, isLoading } = useRoleGuard("vendor");
   const [hasDeliveryLocation, setHasDeliveryLocation] = useState(true);
+  const [verificationStatus, setVerificationStatus] = useState<"pending" | "approved" | "rejected" | null>(null);
 
   useEffect(() => {
     if (!profile || profile.role !== "vendor" || !profile.vendorId) return;
@@ -185,6 +186,19 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
       })
       .catch(() => {
         setHasDeliveryLocation(true);
+      });
+  }, [profile]);
+
+  useEffect(() => {
+    if (!profile || profile.role !== "vendor" || !profile.vendorId) return;
+
+    client
+      .vendorProfile(profile.vendorId)
+      .then((vendor) => {
+        setVerificationStatus(vendor.verification_status ?? (vendor.is_active ? "approved" : "pending"));
+      })
+      .catch(() => {
+        setVerificationStatus(null);
       });
   }, [profile]);
 
@@ -267,6 +281,17 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
           </header>
 
           <main className="flex-1 pb-20 md:pb-6">
+            {verificationStatus !== null && verificationStatus !== "approved" && !pathname.startsWith("/vendor/profile") ? (
+              <div className="mx-4 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 md:mx-6 lg:mx-8">
+                <p className="text-sm font-bold text-rose-900">Admin verification required before vendor actions</p>
+                <p className="mt-1 text-sm text-rose-800">
+                  Upload your business logo and location proof in Business Profile so admin can approve your account.
+                  <Link href="/vendor/profile" className="ml-1 font-bold underline decoration-rose-700 underline-offset-2">
+                    Go to Business Profile
+                  </Link>
+                </p>
+              </div>
+            ) : null}
             {!hasDeliveryLocation && !pathname.startsWith("/vendor/pickup-locations") ? (
               <div className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 md:mx-6 lg:mx-8">
                 <p className="text-sm font-bold text-amber-900">Setup required before vendor actions</p>

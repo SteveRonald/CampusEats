@@ -12,6 +12,7 @@ import {
   getVendorMenu,
   getVendorOrders,
   getVendorProfile,
+  updateVendorVerificationStatus,
   updateVendorProfile,
   updateVendorDeliveryLocation,
   updateVendorServiceAreas,
@@ -24,7 +25,7 @@ import { authenticate, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-router.get("/", listVendors);
+router.get("/", authenticate, requireRole("admin"), listVendors);
 router.get("/:id/service-areas", authenticate, requireRole("vendor", "admin"), getVendorServiceAreas);
 router.get("/:id/delivery-locations", getVendorDeliveryLocations);
 router.get("/:id/delivery-location-recommendations", authenticate, requireRole("vendor", "admin"), getVendorDeliveryLocationRecommendations);
@@ -47,6 +48,7 @@ router.put("/:id/service-areas", authenticate, requireRole("vendor", "admin"), u
 router.get("/:id/orders", authenticate, requireRole("vendor", "admin"), getVendorOrders);
 router.get("/:id/profile", authenticate, requireRole("vendor", "admin"), getVendorProfile);
 router.patch("/:id/profile", authenticate, requireRole("vendor", "admin"), updateVendorProfile);
+router.patch("/:id/verification", authenticate, requireRole("admin"), updateVendorVerificationStatus);
 router.get("/:id/earnings", authenticate, requireRole("vendor", "admin"), getVendorEarnings);
 router.get("/:id/menu", authenticate, requireRole("vendor", "admin"), getVendorMenu);
 router.post("/:id/menu", authenticate, requireRole("vendor", "admin"), createVendorMenuItem);
