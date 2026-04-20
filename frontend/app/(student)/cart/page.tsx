@@ -152,8 +152,8 @@ export default function CartPage() {
       router.push(`/orders/${order.public_id ?? order.id}`);
     } catch (error) {
       const rawMessage = error instanceof Error ? error.message : "Failed to start payment. Please try again.";
-      const message = rawMessage.includes("Failed to create IntaSend checkout session")
-        ? "Could not open M-Pesa checkout right now. Please try again in a moment."
+      const message = rawMessage.includes("Failed to start payment")
+        ? "Could not start payment simulation right now. Please try again in a moment."
         : rawMessage;
 
       toast({
@@ -192,7 +192,7 @@ export default function CartPage() {
         <h1 className="text-2xl font-bold text-foreground mb-1">Your cart</h1>
         <p className="text-sm text-muted-foreground mb-4">
           {profile
-            ? `Payment provider: IntaSend (${paymentMode?.mode?.toUpperCase() ?? "TEST"} mode). Complete payment in the hosted checkout page.`
+            ? `Payment provider: Simulation (${paymentMode?.mode?.toUpperCase() ?? "TEST"} mode). New orders are marked paid immediately.`
             : "Browse freely. Sign in only when you are ready to place the order."}
         </p>
 

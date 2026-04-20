@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS vendors (
   location TEXT,
   pickup_time_min INTEGER NOT NULL DEFAULT 10,
   pickup_time_max INTEGER NOT NULL DEFAULT 15,
+  order_start_time TIME NOT NULL DEFAULT '08:00',
+  order_end_time TIME NOT NULL DEFAULT '22:00',
   verification_status TEXT NOT NULL DEFAULT 'pending' CHECK (verification_status IN ('pending', 'approved', 'rejected')),
   verification_notes TEXT,
   verified_at TIMESTAMP,

@@ -56,6 +56,8 @@ export async function ensureDeliverySchema() {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS room_number TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_area_id INTEGER`);
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS location_proof_image_url TEXT`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS order_start_time TIME`);
+  await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS order_end_time TIME`);
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verification_status TEXT`);
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verification_notes TEXT`);
   await pool.query(`ALTER TABLE vendors ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP`);
@@ -65,6 +67,12 @@ export async function ensureDeliverySchema() {
   await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP`);
   await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS verified_by INTEGER`);
   await pool.query(`ALTER TABLE vendors ALTER COLUMN is_active SET DEFAULT FALSE`);
+  await pool.query(`UPDATE vendors SET order_start_time = '08:00'::time WHERE order_start_time IS NULL`);
+  await pool.query(`UPDATE vendors SET order_end_time = '22:00'::time WHERE order_end_time IS NULL`);
+  await pool.query(`ALTER TABLE vendors ALTER COLUMN order_start_time SET DEFAULT '08:00'::time`);
+  await pool.query(`ALTER TABLE vendors ALTER COLUMN order_end_time SET DEFAULT '22:00'::time`);
+  await pool.query(`ALTER TABLE vendors ALTER COLUMN order_start_time SET NOT NULL`);
+  await pool.query(`ALTER TABLE vendors ALTER COLUMN order_end_time SET NOT NULL`);
   await pool.query(`
     UPDATE vendors
     SET verification_status = CASE WHEN is_active THEN 'approved' ELSE 'pending' END

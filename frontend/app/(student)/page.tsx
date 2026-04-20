@@ -161,6 +161,7 @@ export default function HomePage() {
                     vendorLogoUrl={item.vendor_image_url}
                     pickupTimeMin={item.pickup_time_min}
                     pickupTimeMax={item.pickup_time_max}
+                    vendorAcceptingOrders={item.vendor_accepting_orders ?? true}
                   />
                 </div>
               ))}
@@ -212,6 +213,7 @@ export default function HomePage() {
                 vendorLogoUrl={item.vendor_image_url}
                 pickupTimeMin={item.pickup_time_min}
                 pickupTimeMax={item.pickup_time_max}
+                vendorAcceptingOrders={item.vendor_accepting_orders ?? true}
               />
             ))}
           </div>

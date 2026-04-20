@@ -12,6 +12,14 @@ function normalizeCategory(input) {
     .join(" ");
 }
 
+function normalizeScheduleTime(input, fallback) {
+  const value = String(input ?? fallback ?? "").trim();
+  if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) {
+    return null;
+  }
+  return value;
+}
+
 async function ensureVendorDeliveryLocationConfigured(vendorId) {
   const result = await query(
     `SELECT 1
@@ -74,7 +82,7 @@ export async function listVendors(_req, res) {
   try {
     const result = await query(
       `SELECT v.id, v.user_id, v.stall_name, v.description, v.mpesa_number, v.image_url, v.location_proof_image_url,
-              v.location, v.pickup_time_min, v.pickup_time_max, v.is_active,
+              v.location, v.pickup_time_min, v.pickup_time_max, v.order_start_time, v.order_end_time, v.is_active,
               COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
               v.verification_notes, v.verified_at, v.verified_by,
               u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
@@ -123,7 +131,7 @@ export async function getVendorProfile(req, res) {
 
     const result = await query(
       `SELECT v.id, v.user_id, v.stall_name, v.description, v.mpesa_number, v.image_url, v.location,
-              v.location_proof_image_url, v.pickup_time_min, v.pickup_time_max, v.is_active,
+              v.location_proof_image_url, v.pickup_time_min, v.pickup_time_max, v.order_start_time, v.order_end_time, v.is_active,
               COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
               v.verification_notes, v.verified_at, v.verified_by,
               u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
@@ -537,7 +545,21 @@ export async function updateVendorProfile(req, res) {
       return res.status(404).json({ error: "Vendor not found" });
     }
 
-    const { ownerName, ownerEmail, ownerPhone, stallName, description, mpesaNumber, location, pickupTimeMin, pickupTimeMax, imageUrl, locationProofImageUrl } = req.body;
+    const {
+      ownerName,
+      ownerEmail,
+      ownerPhone,
+      stallName,
+      description,
+      mpesaNumber,
+      location,
+      pickupTimeMin,
+      pickupTimeMax,
+      orderStartTime,
+      orderEndTime,
+      imageUrl,
+      locationProofImageUrl
+    } = req.body;
 
     if (!ownerName || !ownerEmail || !stallName || !mpesaNumber) {
       return res.status(400).json({ error: "Owner name, owner email, stall name, and M-Pesa number are required" });
@@ -574,6 +596,13 @@ export async function updateVendorProfile(req, res) {
     const nextImageRaw = typeof imageUrl === "string" ? imageUrl : undefined;
     const nextImage = nextImageRaw === undefined ? existingImage || null : String(nextImageRaw).trim() || existingImage || null;
 
+    const nextOrderStartTime = normalizeScheduleTime(orderStartTime, "08:00");
+    const nextOrderEndTime = normalizeScheduleTime(orderEndTime, "22:00");
+
+    if (!nextOrderStartTime || !nextOrderEndTime) {
+      return res.status(400).json({ error: "Order start and end times must use HH:MM format" });
+    }
+
     await query(
       `UPDATE vendors
        SET stall_name = $2,
@@ -582,8 +611,10 @@ export async function updateVendorProfile(req, res) {
            location = $5,
            pickup_time_min = $6,
            pickup_time_max = $7,
-           image_url = $8,
-           location_proof_image_url = $9
+           order_start_time = $8,
+           order_end_time = $9,
+           image_url = $10,
+           location_proof_image_url = $11
        WHERE id = $1`,
       [
         vendorId,
@@ -593,6 +624,8 @@ export async function updateVendorProfile(req, res) {
         location ? String(location).trim() : null,
         Number(pickupTimeMin) || 10,
         Number(pickupTimeMax) || 15,
+        nextOrderStartTime,
+        nextOrderEndTime,
         nextImage,
         nextProof
       ]
@@ -600,7 +633,7 @@ export async function updateVendorProfile(req, res) {
 
     const refreshed = await query(
       `SELECT v.id, v.user_id, v.stall_name, v.description, v.mpesa_number, v.image_url, v.location,
-              v.location_proof_image_url, v.pickup_time_min, v.pickup_time_max, v.is_active,
+              v.location_proof_image_url, v.pickup_time_min, v.pickup_time_max, v.order_start_time, v.order_end_time, v.is_active,
               COALESCE(v.verification_status, CASE WHEN v.is_active THEN 'approved' ELSE 'pending' END) AS verification_status,
               v.verification_notes, v.verified_at, v.verified_by,
               u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone

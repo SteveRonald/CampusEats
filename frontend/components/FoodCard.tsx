@@ -18,6 +18,7 @@ interface FoodCardProps {
   vendorLogoUrl?: string | null;
   pickupTimeMin?: number | null;
   pickupTimeMax?: number | null;
+  vendorAcceptingOrders?: boolean;
 }
 
 export function FoodCard({
@@ -32,10 +33,12 @@ export function FoodCard({
   vendorName,
   vendorLogoUrl,
   pickupTimeMin = 10,
-  pickupTimeMax = 15
+  pickupTimeMax = 15,
+  vendorAcceptingOrders = true
 }: FoodCardProps) {
   const { addItem } = useCart();
   const [showDetails, setShowDetails] = useState(false);
+  const canOrderNow = isAvailable && vendorAcceptingOrders;
 
   const addToCart = () => {
     addItem({
@@ -75,6 +78,11 @@ export function FoodCard({
             <span className="bg-white text-gray-700 text-xs font-semibold px-3 py-1 rounded-full">Unavailable</span>
           </div>
         )}
+        {isAvailable && !vendorAcceptingOrders ? (
+          <div className="absolute left-2 top-2 rounded-full bg-amber-100 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.06em] text-amber-800">
+            Not accepting orders now
+          </div>
+        ) : null}
       </div>
       <div className="p-3 flex flex-col flex-1">
         <div className="mb-0.5 flex items-center gap-1.5">
@@ -95,7 +103,7 @@ export function FoodCard({
               <span className="text-[11px] text-muted-foreground">{pickupTimeMin}-{pickupTimeMax} min</span>
             </div>
           </div>
-          {isAvailable && (
+          {canOrderNow && (
             <button
               onClick={(event) => {
                 event.stopPropagation();
@@ -150,7 +158,13 @@ export function FoodCard({
                 <p className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><span className="font-semibold text-[#1F2937]">Status:</span> {isAvailable ? "Available" : "Unavailable"}</p>
               </div>
 
-              {isAvailable ? (
+              {isAvailable && !vendorAcceptingOrders ? (
+                <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm font-semibold text-amber-800">
+                  Vendor is not accepting orders at the moment.
+                </p>
+              ) : null}
+
+              {canOrderNow ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -161,9 +175,9 @@ export function FoodCard({
                 >
                   <Plus className="h-4 w-4" /> Add to cart
                 </button>
-              ) : (
+              ) : !isAvailable ? (
                 <p className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-semibold text-slate-500">This item is currently unavailable.</p>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

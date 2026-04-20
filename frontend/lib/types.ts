@@ -42,6 +42,8 @@ export interface UpdateVendorProfilePayload {
   locationProofImageUrl?: string;
   pickupTimeMin: number;
   pickupTimeMax: number;
+  orderStartTime: string;
+  orderEndTime: string;
 }
 
 export interface DeliveryDetailsPayload {
@@ -93,6 +95,9 @@ export interface MarketplaceItem {
   vendor_image_url?: string | null;
   pickup_time_min: number;
   pickup_time_max: number;
+  vendor_order_start_time?: string | null;
+  vendor_order_end_time?: string | null;
+  vendor_accepting_orders?: boolean;
 }
 
 export interface ServiceArea {
@@ -193,7 +198,7 @@ export interface OrderRecord {
 export interface PaymentModeInfo {
   mode: "test" | "live";
   configured: boolean;
-  provider: "intasend";
+  provider: "simulation";
 }
 
 export interface VendorBusinessProfile {
@@ -207,6 +212,8 @@ export interface VendorBusinessProfile {
   location: string | null;
   pickup_time_min: number;
   pickup_time_max: number;
+  order_start_time: string;
+  order_end_time: string;
   is_active: boolean;
   verification_status: "pending" | "approved" | "rejected";
   verification_notes: string | null;
@@ -228,6 +235,8 @@ export interface VendorRecord {
   location: string | null;
   pickup_time_min: number;
   pickup_time_max: number;
+  order_start_time?: string | null;
+  order_end_time?: string | null;
   is_active: boolean;
   verification_status: "pending" | "approved" | "rejected";
   verification_notes: string | null;

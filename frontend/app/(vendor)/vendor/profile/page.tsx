@@ -16,6 +16,12 @@ function Row({ label, value }: { label: string; value: string }) {
   );
 }
 
+function toTimeInput(value: string | null | undefined, fallback: string) {
+  const normalized = String(value ?? "").trim();
+  if (!normalized) return fallback;
+  return normalized.length >= 5 ? normalized.slice(0, 5) : fallback;
+}
+
 export default function VendorProfilePage() {
   const { profile, refreshProfile } = useSession();
   const [business, setBusiness] = useState<VendorBusinessProfile | null>(null);
@@ -39,7 +45,9 @@ export default function VendorProfilePage() {
     imageUrl: "",
     locationProofImageUrl: "",
     pickupTimeMin: "10",
-    pickupTimeMax: "15"
+    pickupTimeMax: "15",
+    orderStartTime: "08:00",
+    orderEndTime: "22:00"
   });
 
   const validate = () => {
@@ -109,7 +117,9 @@ export default function VendorProfilePage() {
       imageUrl: business.image_url ?? "",
       locationProofImageUrl: business.location_proof_image_url ?? "",
       pickupTimeMin: String(business.pickup_time_min ?? 10),
-      pickupTimeMax: String(business.pickup_time_max ?? 15)
+      pickupTimeMax: String(business.pickup_time_max ?? 15),
+      orderStartTime: toTimeInput(business.order_start_time, "08:00"),
+      orderEndTime: toTimeInput(business.order_end_time, "22:00")
     });
   }, [business, editing]);
 
@@ -126,7 +136,9 @@ export default function VendorProfilePage() {
         draft.imageUrl.trim() !== (business.image_url ?? "") ||
         draft.locationProofImageUrl.trim() !== (business.location_proof_image_url ?? "") ||
         draft.pickupTimeMin !== String(business.pickup_time_min ?? 10) ||
-        draft.pickupTimeMax !== String(business.pickup_time_max ?? 15)
+        draft.pickupTimeMax !== String(business.pickup_time_max ?? 15) ||
+        draft.orderStartTime !== toTimeInput(business.order_start_time, "08:00") ||
+        draft.orderEndTime !== toTimeInput(business.order_end_time, "22:00")
       : false;
 
   useEffect(() => {
@@ -163,7 +175,9 @@ export default function VendorProfilePage() {
         imageUrl: draft.imageUrl,
         locationProofImageUrl: draft.locationProofImageUrl,
         pickupTimeMin: Number(draft.pickupTimeMin),
-        pickupTimeMax: Number(draft.pickupTimeMax)
+        pickupTimeMax: Number(draft.pickupTimeMax),
+        orderStartTime: draft.orderStartTime,
+        orderEndTime: draft.orderEndTime
       });
       setBusiness(next);
       await refreshProfile();
@@ -245,7 +259,9 @@ export default function VendorProfilePage() {
       imageUrl: business?.image_url ?? "",
       locationProofImageUrl: business?.location_proof_image_url ?? "",
       pickupTimeMin: String(business?.pickup_time_min ?? 10),
-      pickupTimeMax: String(business?.pickup_time_max ?? 15)
+      pickupTimeMax: String(business?.pickup_time_max ?? 15),
+      orderStartTime: toTimeInput(business?.order_start_time, "08:00"),
+      orderEndTime: toTimeInput(business?.order_end_time, "22:00")
     });
   };
 
@@ -475,6 +491,34 @@ export default function VendorProfilePage() {
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Accept orders from</label>
+                  <input
+                    type="time"
+                    value={draft.orderStartTime}
+                    onChange={(event) => {
+                      setError(null);
+                      setSuccess(null);
+                      setDraft((c) => ({ ...c, orderStartTime: event.target.value }));
+                    }}
+                    className="w-full text-sm font-semibold text-[#1F2937] outline-none"
+                  />
+                </div>
+                <div className="rounded-md border border-slate-200 bg-white px-4 py-3">
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Accept orders until</label>
+                  <input
+                    type="time"
+                    value={draft.orderEndTime}
+                    onChange={(event) => {
+                      setError(null);
+                      setSuccess(null);
+                      setDraft((c) => ({ ...c, orderEndTime: event.target.value }));
+                    }}
+                    className="w-full text-sm font-semibold text-[#1F2937] outline-none"
+                  />
+                </div>
+              </div>
             </>
           ) : (
             <>
@@ -498,6 +542,10 @@ export default function VendorProfilePage() {
               <Row label="Business description" value={business?.description ?? "-"} />
               <Row label="M-Pesa number" value={business?.mpesa_number ?? "-"} />
               <Row label="Pickup estimate" value={business ? `${business.pickup_time_min}-${business.pickup_time_max} mins` : "-"} />
+              <Row
+                label="Order hours"
+                value={business ? `${toTimeInput(business.order_start_time, "08:00")}-${toTimeInput(business.order_end_time, "22:00")}` : "-"}
+              />
               <Row label="Verification" value={verificationStatusLabel} />
               <Row label="Business status" value={business ? (business.is_active ? "Active" : "Paused") : "-"} />
               <Row label="Role" value={profile.role} />

@@ -1,0 +1,37 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		}
+	],
+	"settings": {
+		"sqltools.connections": [
+			{
+				"mysqlOptions": {
+					"authProtocol": "default",
+					"enableSsl": "Disabled"
+				},
+				"ssh": "Disabled",
+				"previewLimit": 50,
+				"server": "localhost",
+				"port": 3306,
+				"driver": "MySQL",
+				"username": "root",
+				"database": "poultry marketplace",
+				"name": "Xammp Connection",
+				"password": ""
+			},
+			{
+				"ssh": "Disabled",
+				"previewLimit": 50,
+				"server": "localhost",
+				"driver": "PostgreSQL",
+				"connectString": "postgresql://postgres.nhrvdjosaympphzbozqd:FkiG4qlEO4RepZFl@aws-0-us-west-2.pooler.supabase.com:5432/postgres",
+				"name": "Postgres Techblog Database Connection"
+			}
+		],
+		"workbench.colorTheme": "Dark 2026",
+		"workbench.iconTheme": "vs-seti",
+		"workbench.preferredDarkColorTheme": "Dark 2026"
+	}
+}

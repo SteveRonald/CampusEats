@@ -1,6 +1,10 @@
 import { pool } from "../db/client.js";
 import { buildOrderPublicId, buildPickupCode, hydrateOrders } from "./helpers.js";
-import { createCheckoutSession, getIntaSendConfig } from "../services/intasend.js";
+import {
+  createSimulatedCheckoutSession,
+  createSimulatedPaymentReference,
+  getPaymentSimulationConfig
+} from "../services/paymentSimulation.js";
 import { calculateSplit } from "../services/payout.js";
 
 function firstUrl(value) {
@@ -8,12 +12,6 @@ function firstUrl(value) {
     .split(",")
     .map((entry) => entry.trim())
     .filter(Boolean)[0] || "";
-}
-
-function resolveApiBaseUrl(req) {
-  const configured = firstUrl(process.env.API_BASE_URL);
-  if (configured) return configured;
-  return `${req.protocol}://${req.get("host")}`;
 }
 
 function resolveClientBaseUrl(req) {
@@ -25,11 +23,11 @@ function resolveClientBaseUrl(req) {
 }
 
 export async function getPaymentMode(_req, res) {
-  const config = getIntaSendConfig();
+  const config = getPaymentSimulationConfig();
   res.json({
     mode: config.mode,
     configured: config.configured,
-    provider: "intasend"
+    provider: config.provider
   });
 }
 
@@ -104,12 +102,26 @@ export async function checkout(req, res) {
     }
 
     const normalizedOrderType = orderType === "delivery" ? "delivery" : "dine_in";
-    const vendorResult = await client.query(`SELECT id, location, is_active FROM vendors WHERE id = $1 LIMIT 1`, [vendorId]);
+    const vendorResult = await client.query(
+      `SELECT id, location, is_active, order_start_time, order_end_time,
+              CASE
+                WHEN order_start_time = order_end_time THEN true
+                WHEN order_start_time < order_end_time THEN (timezone('Africa/Nairobi', NOW())::time >= order_start_time AND timezone('Africa/Nairobi', NOW())::time < order_end_time)
+                ELSE (timezone('Africa/Nairobi', NOW())::time >= order_start_time OR timezone('Africa/Nairobi', NOW())::time < order_end_time)
+              END AS accepting_orders
+       FROM vendors
+       WHERE id = $1
+       LIMIT 1`,
+      [vendorId]
+    );
     if (!vendorResult.rows.length) {
       return res.status(404).json({ error: "Vendor not found" });
     }
     if (!vendorResult.rows[0].is_active) {
       return res.status(400).json({ error: "Vendor is currently inactive" });
+    }
+    if (!vendorResult.rows[0].accepting_orders) {
+      return res.status(400).json({ error: "Vendor is not accepting orders at the moment. Please try again during their operating hours." });
     }
 
     let hostelRow = null;
@@ -233,7 +245,7 @@ export async function checkout(req, res) {
 
      const orderResult = await client.query(
       `INSERT INTO orders (student_id, vendor_id, public_id, student_name, order_type, status, total_amount, pickup_code, pickup_location, delivery_details, hostel_id, room_number, service_area_id, notes)
-       VALUES ($1, $2, $3, $4, $5, 'pending', $6, $7, $8, $9::jsonb, $10, $11, $12, $13)
+       VALUES ($1, $2, $3, $4, $5, 'paid', $6, $7, $8, $9::jsonb, $10, $11, $12, $13)
        RETURNING *`,
       [
         req.user.id,
@@ -269,8 +281,8 @@ export async function checkout(req, res) {
       );
     }
 
-    const intasendConfig = getIntaSendConfig();
-    const paymentReference = `ORD-${order.id}-${Date.now()}`;
+    const simulationConfig = getPaymentSimulationConfig();
+    const paymentReference = createSimulatedPaymentReference(order.id);
     const split = calculateSplit(totalAmount);
     const studentResult = await client.query(`SELECT email, name FROM users WHERE id = $1 LIMIT 1`, [req.user.id]);
     const studentEmail = studentResult.rows[0]?.email || "student@campuseats.local";
@@ -278,38 +290,26 @@ export async function checkout(req, res) {
 
     await client.query(`UPDATE orders SET payment_reference = $2 WHERE id = $1`, [order.id, paymentReference]);
 
-    if (!intasendConfig.configured) {
-      throw new Error(`IntaSend ${intasendConfig.mode.toUpperCase()} keys are not configured`);
-    }
-
-    const apiBaseUrl = resolveApiBaseUrl(req);
-    const clientBaseUrl = resolveClientBaseUrl(req);
-    const session = await createCheckoutSession({
+    const session = createSimulatedCheckoutSession({
       amount: totalAmount,
       email: studentEmail,
       customerName: studentDisplayName,
       reference: paymentReference,
-      callbackUrl: `${apiBaseUrl}/api/webhook/intasend`,
-      redirectUrl: `${clientBaseUrl}/orders/${order.public_id}`,
       metadata: {
         orderId: order.id,
         publicOrderId: order.public_id,
-        mode: intasendConfig.mode
+        mode: simulationConfig.mode
       }
     });
 
-    if (!session.checkoutUrl) {
-      throw new Error("IntaSend checkout URL was not returned");
-    }
-
     const checkoutUrl = session.checkoutUrl;
     const providerPayload = session.rawPayload;
-    const transactionStatus = "pending";
+    const transactionStatus = "completed";
 
     await client.query(
       `INSERT INTO transactions (order_id, payment_provider, payment_reference, amount, commission, vendor_payout, payout_reference, status, raw_payload)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
-      [order.id, "intasend", paymentReference, totalAmount, split.commission, split.vendorPayout, split.payoutReference, transactionStatus, JSON.stringify(providerPayload)]
+      [order.id, simulationConfig.provider, paymentReference, totalAmount, split.commission, split.vendorPayout, split.payoutReference, transactionStatus, JSON.stringify(providerPayload)]
     );
 
     await client.query("COMMIT");
@@ -330,7 +330,7 @@ export async function checkout(req, res) {
     res.status(201).json({
       ...hydrated,
       checkout_url: checkoutUrl,
-      payment_mode: intasendConfig.mode,
+      payment_mode: simulationConfig.mode,
       last_callback_status: transactionStatus
     });
   } catch (error) {
@@ -358,10 +358,7 @@ export async function listTransactions(_req, res) {
 
 export async function simulatePaymentResult(req, res) {
   try {
-    const config = getIntaSendConfig();
-    if (config.mode !== "test") {
-      return res.status(400).json({ error: "Payment simulation is only allowed in TEST mode" });
-    }
+    const config = getPaymentSimulationConfig();
 
     const orderId = Number(req.params.orderId);
     const outcome = String(req.body?.status || "success").toLowerCase();

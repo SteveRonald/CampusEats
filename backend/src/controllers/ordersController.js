@@ -58,7 +58,14 @@ export async function getMarketplaceFeed(req, res) {
     const itemsResult = await query(
       `SELECT m.id, m.vendor_id, m.name, m.description, m.price, m.category, m.image_url, m.is_available,
               m.order_count, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.image_url AS vendor_image_url, v.pickup_time_min, v.pickup_time_max
+              v.image_url AS vendor_image_url, v.pickup_time_min, v.pickup_time_max,
+              v.order_start_time AS vendor_order_start_time,
+              v.order_end_time AS vendor_order_end_time,
+              CASE
+                WHEN v.order_start_time = v.order_end_time THEN true
+                WHEN v.order_start_time < v.order_end_time THEN (timezone('Africa/Nairobi', NOW())::time >= v.order_start_time AND timezone('Africa/Nairobi', NOW())::time < v.order_end_time)
+                ELSE (timezone('Africa/Nairobi', NOW())::time >= v.order_start_time OR timezone('Africa/Nairobi', NOW())::time < v.order_end_time)
+              END AS vendor_accepting_orders
        FROM menu_items m
        INNER JOIN vendors v ON v.id = m.vendor_id
        WHERE ${conditions.join(" AND ")}
@@ -91,7 +98,14 @@ export async function getPopularMeals(_req, res) {
     const result = await query(
       `SELECT m.id, m.vendor_id, m.name, m.description, m.price, m.category, m.image_url, m.is_available,
               m.order_count, v.stall_name AS vendor_name, v.location AS vendor_location,
-              v.image_url AS vendor_image_url, v.pickup_time_min, v.pickup_time_max
+              v.image_url AS vendor_image_url, v.pickup_time_min, v.pickup_time_max,
+              v.order_start_time AS vendor_order_start_time,
+              v.order_end_time AS vendor_order_end_time,
+              CASE
+                WHEN v.order_start_time = v.order_end_time THEN true
+                WHEN v.order_start_time < v.order_end_time THEN (timezone('Africa/Nairobi', NOW())::time >= v.order_start_time AND timezone('Africa/Nairobi', NOW())::time < v.order_end_time)
+                ELSE (timezone('Africa/Nairobi', NOW())::time >= v.order_start_time OR timezone('Africa/Nairobi', NOW())::time < v.order_end_time)
+              END AS vendor_accepting_orders
        FROM menu_items m
        INNER JOIN vendors v ON v.id = m.vendor_id
        WHERE m.is_available = true
