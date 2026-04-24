@@ -178,5 +178,38 @@ export const client = {
       "/api/orders/admin/summary"
     ),
   adminOrders: () => api<OrderRecord[]>("/api/orders/admin/list"),
+  ordersReport: (vendorId?: string | number, period?: "all" | "today" | "week" | "month" | "year") =>
+    api<{
+      orders: Array<{
+        id: number;
+        public_id: string;
+        student_name: string;
+        vendor_id: number;
+        vendor_name: string;
+        total_amount: string;
+        transaction_amount: string;
+        commission: string;
+        vendor_payout: string;
+        status: string;
+        transaction_status: string;
+        created_at: string;
+        item_count: number;
+      }>;
+      summary: {
+        total_orders: number;
+        vendor_count: number;
+        total_amount: string;
+        total_revenue: string;
+        total_commission: string;
+        total_payout: string;
+      };
+    }>(
+      `/api/orders/admin/reports?${new URLSearchParams(
+        Object.entries({
+          vendorId: vendorId ? String(vendorId) : "all",
+          period: period ?? "all"
+        }).filter(([, value]) => value)
+      ).toString()}`
+    ),
   transactions: () => api<Array<{ id: number; amount: string; commission: string; vendor_payout: string; status: string; created_at: string }>>("/api/payments/transactions")
 };

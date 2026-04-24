@@ -319,3 +319,90 @@ export async function getAdminOrders(_req, res) {
     res.status(500).json({ error: "Failed to fetch admin orders" });
   }
 }
+
+export async function getOrdersReport(req, res) {
+  try {
+    const { vendorId, period = "all" } = req.query;
+    const values = [];
+    const conditions = [];
+
+    // Add vendor filter if specified
+    if (vendorId && vendorId !== "all") {
+      values.push(Number(vendorId));
+      conditions.push(`o.vendor_id = $${values.length}`);
+    }
+
+    // Add period filter
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    
+    if (period === "today") {
+      conditions.push(`o.created_at::date = CURRENT_DATE`);
+    } else if (period === "week") {
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      values.push(startOfWeek.toISOString());
+      conditions.push(`o.created_at >= $${values.length}::date AND o.created_at::date <= CURRENT_DATE`);
+    } else if (period === "month") {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      values.push(startOfMonth.toISOString());
+      conditions.push(`o.created_at >= $${values.length}::date AND o.created_at::date <= CURRENT_DATE`);
+    } else if (period === "year") {
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
+      values.push(startOfYear.toISOString());
+      conditions.push(`o.created_at >= $${values.length}::date AND o.created_at::date <= CURRENT_DATE`);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const result = await query(
+      `SELECT 
+         o.id,
+         o.public_id,
+         o.student_name,
+         o.vendor_id,
+         o.total_amount,
+         o.status,
+         o.created_at,
+         o.updated_at,
+         v.stall_name AS vendor_name,
+         v.location AS vendor_location,
+         COUNT(oi.id)::int AS item_count,
+         COALESCE(t.amount, 0)::numeric AS transaction_amount,
+         COALESCE(t.commission, 0)::numeric AS commission,
+         COALESCE(t.vendor_payout, 0)::numeric AS vendor_payout,
+         COALESCE(t.status, 'pending') AS transaction_status
+       FROM orders o
+       INNER JOIN vendors v ON v.id = o.vendor_id
+       LEFT JOIN order_items oi ON oi.order_id = o.id
+       LEFT JOIN transactions t ON t.order_id = o.id
+       ${whereClause}
+       GROUP BY o.id, o.public_id, o.student_name, o.total_amount, o.status, o.created_at, o.updated_at, v.stall_name, v.location, t.id, t.amount, t.commission, t.vendor_payout, t.status
+       ORDER BY o.created_at DESC`,
+      values
+    );
+
+    // Calculate summary statistics
+    const summaryResult = await query(
+      `SELECT 
+         COUNT(DISTINCT o.id)::int AS total_orders,
+         COUNT(DISTINCT o.vendor_id)::int AS vendor_count,
+         COALESCE(SUM(o.total_amount), 0)::numeric AS total_amount,
+         COALESCE(SUM(t.amount), 0)::numeric AS total_revenue,
+         COALESCE(SUM(t.commission), 0)::numeric AS total_commission,
+         COALESCE(SUM(t.vendor_payout), 0)::numeric AS total_payout
+       FROM orders o
+       LEFT JOIN transactions t ON t.order_id = o.id
+       ${whereClause}`,
+      values
+    );
+
+    res.json({
+      orders: result.rows,
+      summary: summaryResult.rows[0]
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch orders report" });
+  }
+}

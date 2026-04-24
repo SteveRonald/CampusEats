@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User, Bell } from "lucide-react";
+import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User, Bell, BarChart3 } from "lucide-react";
 import clsx from "clsx";
 import { useCart, useSession } from "@/components/providers";
 import { client } from "@/lib/api";
@@ -370,6 +370,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: "/admin/vendors", label: "Vendors", icon: <Store className="h-4 w-4" />, active: pathname === "/admin/vendors" },
     { href: "/admin/menu-review", label: "Menu Review", icon: <ChefHat className="h-4 w-4" />, active: pathname.startsWith("/admin/menu-review") },
     { href: "/admin/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/admin/orders" },
+    { href: "/admin/reports", label: "Reports", icon: <BarChart3 className="h-4 w-4" />, active: pathname.startsWith("/admin/reports") },
     { href: "/admin/service-areas", label: "Service Areas", icon: <Home className="h-4 w-4" />, active: pathname.startsWith("/admin/service-areas") },
     { href: "/admin/hostels", label: "Hostels", icon: <User className="h-4 w-4" />, active: pathname.startsWith("/admin/hostels") }
   ];
@@ -381,11 +382,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         ? "Menu Review"
       : pathname === "/admin/orders"
         ? "Orders"
-        : pathname.startsWith("/admin/service-areas")
-          ? "Service Areas"
-          : pathname.startsWith("/admin/hostels")
-            ? "Hostels"
-            : "Dashboard";
+        : pathname.startsWith("/admin/reports")
+          ? "Reports"
+          : pathname.startsWith("/admin/service-areas")
+            ? "Service Areas"
+            : pathname.startsWith("/admin/hostels")
+              ? "Hostels"
+              : "Dashboard";
 
   return (
     <div className="min-h-screen bg-[#F8FAFC]">

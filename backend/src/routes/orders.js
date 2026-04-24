@@ -7,7 +7,8 @@ import {
   getOrder,
   getPopularMeals,
   listStudentOrders,
-  updateOrderStatus
+  updateOrderStatus,
+  getOrdersReport
 } from "../controllers/ordersController.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
 
@@ -18,6 +19,7 @@ router.get("/marketplace/popular", getPopularMeals);
 router.get("/marketplace/categories", getCategories);
 router.get("/admin/summary", authenticate, requireRole("admin"), getAdminSummary);
 router.get("/admin/list", authenticate, requireRole("admin"), getAdminOrders);
+router.get("/admin/reports", authenticate, requireRole("admin"), getOrdersReport);
 router.get("/", authenticate, requireRole("student"), listStudentOrders);
 router.get("/:id", authenticate, getOrder);
 router.patch("/:id/status", authenticate, updateOrderStatus);
