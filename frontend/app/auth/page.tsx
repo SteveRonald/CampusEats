@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -16,7 +16,7 @@ function destinationForRole(role: "student" | "vendor" | "admin") {
   return "/";
 }
 
-export default function AuthPage() {
+function AuthPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { profile, isLoading, login, register } = useSession();
@@ -351,5 +351,22 @@ export default function AuthPage() {
       </div>
       </div>
     </StudentLayout>
+  );
+}
+
+export default function AuthPage() {
+  return (
+    <Suspense
+      fallback={
+        <StudentLayout>
+          <div className="flex min-h-[60vh] flex-col items-center justify-center gap-3 px-4">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-orange-200 border-t-primary" />
+            <p className="text-sm font-semibold text-muted-foreground">Loading</p>
+          </div>
+        </StudentLayout>
+      }
+    >
+      <AuthPageContent />
+    </Suspense>
   );
 }
