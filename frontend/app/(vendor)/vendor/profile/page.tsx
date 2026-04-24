@@ -248,10 +248,13 @@ export default function VendorProfilePage() {
   }, [logoLocalPreview, proofLocalPreview]);
 
   const resetFormFromBusiness = () => {
+    const currentProfile = profile;
+    if (!currentProfile) return;
+
     setDraft({
-      ownerName: business?.owner_name ?? profile.name ?? "",
-      ownerEmail: business?.owner_email ?? profile.email ?? "",
-      ownerPhone: business?.owner_phone ?? profile.phone ?? "",
+      ownerName: business?.owner_name ?? currentProfile.name ?? "",
+      ownerEmail: business?.owner_email ?? currentProfile.email ?? "",
+      ownerPhone: business?.owner_phone ?? currentProfile.phone ?? "",
       stallName: business?.stall_name ?? "",
       description: business?.description ?? "",
       mpesaNumber: business?.mpesa_number ?? "",
