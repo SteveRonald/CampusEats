@@ -151,7 +151,7 @@ export default function VendorProfilePage() {
 
   const handleSave = async (event: FormEvent) => {
     event.preventDefault();
-    if (!profile.vendorId) return;
+    if (!profile || !profile.vendorId) return;
     setError(null);
     setSuccess(null);
 

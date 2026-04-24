@@ -69,9 +69,11 @@ id_rsa.pub
 *.secrets
 secrets.*
 
-# Database dumps and local SQL files
+# Database dumps and local SQL files (exclude local dumps, include schema/seed)
 *.sql
 *.sql.gz
+!database/schema.sql
+!database/seed.sql
 *.sqlite
 *.sqlite3
 *.db
