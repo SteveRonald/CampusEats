@@ -81,20 +81,6 @@ export default function AdminLoginPage() {
           </button>
         </form>
 
-        <div className="mt-6">
-          <p className="mb-2 text-center text-xs font-black tracking-[0.08em] text-muted-foreground">TRY DEMO ACCOUNT</p>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("admin@campuseats.co.ke");
-              setPassword("admin123");
-            }}
-            className="w-full rounded-2xl border border-yellow-300 bg-yellow-50 py-2.5 text-sm font-bold text-amber-700"
-          >
-            Fill demo admin credentials
-          </button>
-        </div>
-
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Student or vendor? <Link href="/auth" className="font-bold text-primary">Use shared login</Link>
         </p>
