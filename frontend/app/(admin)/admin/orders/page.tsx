@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { MessageCircle } from "lucide-react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { useToast } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
@@ -207,7 +207,10 @@ export default function AdminOrdersPage() {
             <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">All Orders</h1>
             <p className="text-sm text-slate-500">Monitor order volume, payment statuses, and fulfillment progress.</p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">{visibleOrders.length} shown</span>
+          <div className="flex items-center gap-2">
+            <AdminMenuButton />
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">{visibleOrders.length} shown</span>
+          </div>
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">

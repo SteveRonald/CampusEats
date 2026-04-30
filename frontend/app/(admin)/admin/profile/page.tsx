@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 
@@ -93,9 +93,12 @@ export default function AdminProfilePage() {
   return (
     <AdminLayout>
       <div className="pt-4 space-y-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Profile</h1>
-          <p className="text-sm text-muted-foreground">Admin account details</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Profile</h1>
+            <p className="text-sm text-muted-foreground">Admin account details</p>
+          </div>
+          <AdminMenuButton />
         </div>
 
         {error && <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}

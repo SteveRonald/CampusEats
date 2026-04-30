@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Store } from "lucide-react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { VendorRecord } from "@/lib/types";
 
@@ -73,7 +73,10 @@ export default function AdminVendorsPage() {
             <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Vendors</h1>
             <p className="text-sm text-slate-500">Manage vendor access, payout numbers, and operational readiness.</p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">{vendors.length} vendors</span>
+          <div className="flex items-center gap-2">
+            <AdminMenuButton />
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">{vendors.length} vendors</span>
+          </div>
         </div>
 
         {error ? <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}

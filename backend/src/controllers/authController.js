@@ -156,7 +156,7 @@ export async function login(req, res) {
     }
 
     if (user.role === "admin") {
-      return res.status(403).json({ error: "Use admin login" });
+      return res.status(401).json({ error: "Invalid credentials" });
     }
 
     const profile = toProfile(user);

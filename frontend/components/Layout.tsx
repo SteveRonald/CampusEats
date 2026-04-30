@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User, Bell, BarChart3 } from "lucide-react";
+import { ShoppingCart, Home, ClipboardList, LayoutDashboard, Store, ChefHat, LogOut, User, Bell, BarChart3, Menu, X } from "lucide-react";
 import clsx from "clsx";
 import { useCart, useSession } from "@/components/providers";
 import { client } from "@/lib/api";
@@ -194,11 +194,114 @@ export function StudentLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
+const AdminMobileMenuContext = createContext<{ openMenu: () => void } | null>(null);
+const VendorMobileMenuContext = createContext<{ openMenu: () => void } | null>(null);
+
+export function useAdminMobileMenu() {
+  const context = useContext(AdminMobileMenuContext);
+  if (!context) throw new Error("useAdminMobileMenu must be used within AdminLayout");
+  return context;
+}
+
+export function useVendorMobileMenu() {
+  const context = useContext(VendorMobileMenuContext);
+  if (!context) throw new Error("useVendorMobileMenu must be used within VendorLayout");
+  return context;
+}
+
+export function AdminMenuButton({ className }: { className?: string }) {
+  const { openMenu } = useAdminMobileMenu();
+
+  return (
+    <button
+      type="button"
+      aria-label="Open menu"
+      onClick={openMenu}
+      className={clsx(
+        "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground shadow-sm md:hidden",
+        className
+      )}
+    >
+      <Menu className="h-4 w-4" />
+    </button>
+  );
+}
+
+export function VendorMenuButton({ className }: { className?: string }) {
+  const { openMenu } = useVendorMobileMenu();
+
+  return (
+    <button
+      type="button"
+      aria-label="Open menu"
+      onClick={openMenu}
+      className={clsx(
+        "inline-flex h-10 w-10 items-center justify-center rounded-xl border border-border bg-white text-muted-foreground shadow-sm md:hidden",
+        className
+      )}
+    >
+      <Menu className="h-4 w-4" />
+    </button>
+  );
+}
+
+function MobileDrawerNav({
+  open,
+  onClose,
+  title,
+  links
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  links: Array<{ href: string; label: string; icon: React.ReactNode; active: boolean }>;
+}) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[60] md:hidden" role="dialog" aria-modal="true" aria-label={`${title} menu`}>
+      <button type="button" aria-label="Close menu" className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <aside className="absolute left-0 top-0 h-full w-[86%] max-w-xs bg-white shadow-2xl">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <p className="text-sm font-black text-foreground">{title}</p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground"
+            aria-label="Close menu"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <nav className="p-3">
+          <div className="space-y-1">
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={onClose}
+                className={clsx(
+                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors",
+                  link.active ? "bg-orange-50 text-primary" : "text-foreground hover:bg-muted"
+                )}
+              >
+                <span className={clsx("inline-flex h-7 w-7 items-center justify-center rounded-md", link.active ? "bg-orange-100" : "bg-muted")}>{link.icon}</span>
+                <span>{link.label}</span>
+              </Link>
+            ))}
+          </div>
+        </nav>
+      </aside>
+    </div>
+  );
+}
+
 export function VendorLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, isLoading } = useRoleGuard("vendor");
   const [hasDeliveryLocation, setHasDeliveryLocation] = useState(true);
   const [verificationStatus, setVerificationStatus] = useState<"pending" | "approved" | "rejected" | null>(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!profile || profile.role !== "vendor" || !profile.vendorId) return;
@@ -235,6 +338,7 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
     { href: "/vendor/orders", label: "Orders", icon: <ClipboardList className="h-4 w-4" />, active: pathname === "/vendor/orders" },
     { href: "/vendor/menu", label: "Menu", icon: <ChefHat className="h-4 w-4" />, active: pathname.startsWith("/vendor/menu") },
     { href: "/vendor/pickup-locations", label: "Delivery Locations", icon: <Home className="h-4 w-4" />, active: pathname.startsWith("/vendor/pickup-locations") },
+    { href: "/vendor/reports", label: "Reports", icon: <BarChart3 className="h-4 w-4" />, active: pathname.startsWith("/vendor/reports") },
     { href: "/vendor/profile", label: "Business Profile", icon: <User className="h-4 w-4" />, active: pathname === "/vendor/profile" }
   ];
 
@@ -245,6 +349,8 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
         ? "Menu"
         : pathname.startsWith("/vendor/pickup-locations")
           ? "Delivery Locations"
+          : pathname.startsWith("/vendor/reports")
+            ? "Reports"
           : pathname === "/vendor/profile"
             ? "Business Profile"
             : "Dashboard";
@@ -304,35 +410,39 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 pb-20 md:pb-6">
-            {verificationStatus !== null && verificationStatus !== "approved" && !pathname.startsWith("/vendor/profile") ? (
-              <div className="mx-4 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 md:mx-6 lg:mx-8">
-                <p className="text-sm font-bold text-rose-900">Admin verification required before vendor actions</p>
-                <p className="mt-1 text-sm text-rose-800">
-                  Upload your business logo and location proof in Business Profile so admin can approve your account.
-                  <Link href="/vendor/profile" className="ml-1 font-bold underline decoration-rose-700 underline-offset-2">
-                    Go to Business Profile
-                  </Link>
-                </p>
-              </div>
-            ) : null}
-            {!hasDeliveryLocation && !pathname.startsWith("/vendor/pickup-locations") ? (
-              <div className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 md:mx-6 lg:mx-8">
-                <p className="text-sm font-bold text-amber-900">Setup required before vendor actions</p>
-                <p className="mt-1 text-sm text-amber-800">
-                  Add at least one delivery location to continue with order updates and menu changes.
-                  <Link href="/vendor/pickup-locations" className="ml-1 font-bold underline decoration-amber-700 underline-offset-2">
-                    Go to Delivery Locations
-                  </Link>
-                </p>
-              </div>
-            ) : null}
-            {children}
-          </main>
-          <div className="px-4 pb-20 md:px-6 md:pb-6 lg:px-8">
-            <PublicFooter />
-          </div>
+          <VendorMobileMenuContext.Provider value={{ openMenu: () => setMobileMenuOpen(true) }}>
+            <main className="flex-1 pb-20 md:pb-6">
+              {verificationStatus !== null && verificationStatus !== "approved" && !pathname.startsWith("/vendor/profile") ? (
+                <div className="mx-4 mt-4 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 md:mx-6 lg:mx-8">
+                  <p className="text-sm font-bold text-rose-900">Admin verification required before vendor actions</p>
+                  <p className="mt-1 text-sm text-rose-800">
+                    Upload your business logo and location proof in Business Profile so admin can approve your account.
+                    <Link href="/vendor/profile" className="ml-1 font-bold underline decoration-rose-700 underline-offset-2">
+                      Go to Business Profile
+                    </Link>
+                  </p>
+                </div>
+              ) : null}
+              {!hasDeliveryLocation && !pathname.startsWith("/vendor/pickup-locations") ? (
+                <div className="mx-4 mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 md:mx-6 lg:mx-8">
+                  <p className="text-sm font-bold text-amber-900">Setup required before vendor actions</p>
+                  <p className="mt-1 text-sm text-amber-800">
+                    Add at least one delivery location to continue with order updates and menu changes.
+                    <Link href="/vendor/pickup-locations" className="ml-1 font-bold underline decoration-amber-700 underline-offset-2">
+                      Go to Delivery Locations
+                    </Link>
+                  </p>
+                </div>
+              ) : null}
+              {children}
+            </main>
+            <div className="px-4 pb-20 md:px-6 md:pb-6 lg:px-8">
+              <PublicFooter />
+            </div>
+          </VendorMobileMenuContext.Provider>
         </div>
+
+        <MobileDrawerNav open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} title="Vendor Menu" links={vendorLinks} />
 
         <nav className="pointer-events-none fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
           <div className="pointer-events-auto flex items-center justify-around py-2">
@@ -360,6 +470,7 @@ export function VendorLayout({ children }: { children: React.ReactNode }) {
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { profile, isLoading } = useRoleGuard("admin");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (isLoading || !profile || profile.role !== "admin") {
     return <LoadingShell />;
@@ -445,11 +556,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 px-4 pb-20 md:px-6 md:pb-6 lg:px-8">{children}</main>
-          <div className="px-4 pb-20 md:px-6 md:pb-6 lg:px-8">
-            <PublicFooter />
-          </div>
+          <AdminMobileMenuContext.Provider value={{ openMenu: () => setMobileMenuOpen(true) }}>
+            <main className="flex-1 px-4 pb-20 md:px-6 md:pb-6 lg:px-8">{children}</main>
+            <div className="px-4 pb-20 md:px-6 md:pb-6 lg:px-8">
+              <PublicFooter />
+            </div>
+          </AdminMobileMenuContext.Provider>
         </div>
+
+        <MobileDrawerNav open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} title="Admin Menu" links={adminLinks} />
 
         <nav className="pointer-events-none fixed bottom-0 left-1/2 z-50 w-full max-w-[1320px] -translate-x-1/2 border-t border-border bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/85 md:hidden">
           <div className="pointer-events-auto flex items-center justify-around py-2">
@@ -462,6 +577,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <NavLink href="/admin/vendors" active={pathname === "/admin/vendors"} icon={<Store className="h-5 w-5" />} label="Vendors" />
             <NavLink href="/admin/menu-review" active={pathname.startsWith("/admin/menu-review")} icon={<ChefHat className="h-5 w-5" />} label="Menu" />
             <NavLink href="/admin/orders" active={pathname === "/admin/orders"} icon={<ClipboardList className="h-5 w-5" />} label="Orders" />
+            <NavLink href="/admin/reports" active={pathname.startsWith("/admin/reports")} icon={<BarChart3 className="h-5 w-5" />} label="Reports" />
             <NavLink href="/admin/service-areas" active={pathname.startsWith("/admin/service-areas")} icon={<Home className="h-5 w-5" />} label="Areas" />
           </div>
         </nav>

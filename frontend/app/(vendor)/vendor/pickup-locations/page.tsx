@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Check, PencilLine, Plus, Save, Trash2 } from "lucide-react";
-import { VendorLayout } from "@/components/Layout";
+import { VendorLayout, VendorMenuButton } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { VendorDeliveryLocation, VendorDeliveryLocationRecommendation, VendorServiceArea } from "@/lib/types";
@@ -236,8 +236,11 @@ export default function VendorPickupLocationsPage() {
               <h1 className="mt-1 text-xl font-black text-[#1F2937] md:text-2xl">Manage delivery locations</h1>
               <p className="mt-1 text-sm text-slate-600">Choose the admin-created service areas you serve, then add the delivery points students can use there.</p>
             </div>
-            <div className="rounded-xl bg-orange-50 px-3 py-2 text-sm font-semibold text-[#FF6B00]">
-              {selectedAreas.length} service area{selectedAreas.length === 1 ? "" : "s"} selected
+            <div className="flex items-center gap-2">
+              <VendorMenuButton />
+              <div className="rounded-xl bg-orange-50 px-3 py-2 text-sm font-semibold text-[#FF6B00]">
+                {selectedAreas.length} service area{selectedAreas.length === 1 ? "" : "s"} selected
+              </div>
             </div>
           </div>
 

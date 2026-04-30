@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { TrendingUp, ShoppingBag, DollarSign, Store, CheckCircle, ArrowUpRight, ClipboardList } from "lucide-react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { formatKES } from "@/lib/utils";
 
@@ -38,7 +38,7 @@ export default function AdminDashboardPage() {
             <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Admin Dashboard</h1>
             <p className="text-sm text-slate-500">Track platform health, vendor operations, and order activity.</p>
           </div>
-          <span className="rounded-full border border-orange-200 bg-orange-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.08em] text-primary">Auto-refreshing every 15 seconds</span>
+          <AdminMenuButton />
         </div>
 
         {error ? <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}

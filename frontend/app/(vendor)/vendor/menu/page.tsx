@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
-import { VendorLayout } from "@/components/Layout";
+import { VendorLayout, VendorMenuButton } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { uploadCompressedImage } from "@/lib/storageUpload";
@@ -160,9 +160,12 @@ export default function VendorMenuPage() {
   return (
     <VendorLayout>
       <div className="bg-[#F8FAFC] px-4 pb-6 pt-4 space-y-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
-        <div>
-          <h1 className="mb-1 text-lg font-bold text-[#1F2937] md:text-xl">Menu</h1>
-          <p className="text-xs text-slate-500 md:text-sm">Manage your live catalog and pricing for student orders.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="mb-1 text-lg font-bold text-[#1F2937] md:text-xl">Menu</h1>
+            <p className="text-xs text-slate-500 md:text-sm">Manage your live catalog and pricing for student orders.</p>
+          </div>
+          <VendorMenuButton />
         </div>
 
         <div className="grid gap-4 lg:grid-cols-12 lg:items-start">

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
-import { VendorLayout } from "@/components/Layout";
+import { VendorLayout, VendorMenuButton } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
@@ -128,6 +128,14 @@ export default function VendorDashboardPage() {
   return (
     <VendorLayout>
       <div className="bg-[#F8FAFC] px-4 pb-5 pt-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Vendor Dashboard</h1>
+            <p className="text-sm text-slate-500">Track incoming orders, revenue, and payouts.</p>
+          </div>
+          <VendorMenuButton />
+        </div>
+
         <section className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
           <div className="rounded-lg border border-slate-200 bg-white px-3 py-3">
             <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-slate-500">Active Orders</p>

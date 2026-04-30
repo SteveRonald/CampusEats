@@ -119,12 +119,12 @@ export function FoodCard({
       </div>
 
       {showDetails ? (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/55 p-2 sm:items-center sm:p-4" onClick={() => setShowDetails(false)}>
+        <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/55 p-2 sm:items-center sm:p-4" onClick={() => setShowDetails(false)}>
           <div
             role="dialog"
             aria-modal="true"
             aria-label={`${name} details`}
-            className="max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
+            className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="sticky top-0 z-10 flex items-start justify-between border-b border-slate-200 bg-white px-4 py-3">
@@ -137,7 +137,7 @@ export function FoodCard({
               </button>
             </div>
 
-            <div className="space-y-4 p-4">
+            <div className="space-y-4 p-4 pb-24 sm:pb-6">
               {imageUrl ? (
                 <img src={imageUrl} alt={name} className="h-56 w-full rounded-xl object-cover" />
               ) : (

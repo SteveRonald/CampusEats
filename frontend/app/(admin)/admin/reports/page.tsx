@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { formatKES } from "@/lib/utils";
 import { Download, Loader2, BarChart3, TrendingUp } from "lucide-react";
@@ -147,6 +147,7 @@ export default function AdminReportsPage() {
             <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Orders Report</h1>
             <p className="text-sm text-slate-500">Analyze order trends, revenue, and vendor performance</p>
           </div>
+          <AdminMenuButton />
         </div>
 
         {/* Filters */}

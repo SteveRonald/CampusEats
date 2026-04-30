@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, FormEvent, useEffect, useState } from "react";
-import { VendorLayout } from "@/components/Layout";
+import { VendorLayout, VendorMenuButton } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { uploadCompressedImage } from "@/lib/storageUpload";
@@ -291,9 +291,12 @@ export default function VendorProfilePage() {
   return (
     <VendorLayout>
       <div className="bg-[#F8FAFC] px-4 pt-4 md:px-6 lg:px-8 space-y-4" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
-        <div>
-          <h1 className="text-lg font-bold text-[#1F2937] md:text-xl">Business Profile</h1>
-          <p className="text-xs text-slate-500 md:text-sm">Keep vendor identity, payout, and pickup details up to date.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-lg font-bold text-[#1F2937] md:text-xl">Business Profile</h1>
+            <p className="text-xs text-slate-500 md:text-sm">Keep vendor identity, payout, and pickup details up to date.</p>
+          </div>
+          <VendorMenuButton />
         </div>
 
         <div className={`rounded-md border px-3 py-2 text-sm font-semibold ${verificationStatusClass}`}>

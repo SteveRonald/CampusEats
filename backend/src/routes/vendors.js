@@ -21,7 +21,8 @@ import {
   deleteVendorDeliveryLocation,
   listVendors,
   toggleVendor,
-  updateVendorMenuItem
+  updateVendorMenuItem,
+  getVendorOrdersReport
 } from "../controllers/vendorsController.js";
 import { authenticate, requireRole } from "../middleware/auth.js";
 
@@ -54,6 +55,7 @@ router.patch("/:id/verification", authenticate, requireRole("admin"), updateVend
 router.get("/menu/review", authenticate, requireRole("admin"), getAdminMenuReview);
 router.patch("/menu/:itemId/verification", authenticate, requireRole("admin"), updateMenuVerificationStatus);
 router.get("/:id/earnings", authenticate, requireRole("vendor", "admin"), getVendorEarnings);
+router.get("/:id/reports", authenticate, requireRole("vendor", "admin"), getVendorOrdersReport);
 router.get("/:id/menu", authenticate, requireRole("vendor", "admin"), getVendorMenu);
 router.post("/:id/menu", authenticate, requireRole("vendor", "admin"), createVendorMenuItem);
 router.patch("/:id/toggle", authenticate, requireRole("admin"), toggleVendor);

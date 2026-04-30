@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { VendorLayout } from "@/components/Layout";
+import { VendorLayout, VendorMenuButton } from "@/components/Layout";
 import { useSession } from "@/components/providers";
 import { client } from "@/lib/api";
 import { OrderRecord } from "@/lib/types";
@@ -212,11 +212,12 @@ export default function VendorOrdersPage() {
   return (
     <VendorLayout>
       <div className="bg-[#F8FAFC] px-4 pb-5 pt-4 md:px-6 lg:px-8" style={{ fontFamily: "Inter, 'Source Sans 3', system-ui, sans-serif" }}>
-        <div className="mb-4">
+        <div className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h1 className="text-lg font-bold text-[#1F2937] md:text-xl">Orders</h1>
             <p className="text-xs text-slate-500">Track incoming orders and update progress quickly.</p>
           </div>
+          <VendorMenuButton />
         </div>
 
         <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3 md:p-4">

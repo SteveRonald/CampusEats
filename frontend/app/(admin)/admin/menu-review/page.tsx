@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { AdminMenuReviewRecord } from "@/lib/types";
 import { formatKES } from "@/lib/utils";
@@ -164,7 +164,10 @@ export default function AdminMenuReviewPage() {
             <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Menu Review</h1>
             <p className="text-sm text-slate-500">Approve vendor menu items before they appear to students.</p>
           </div>
-          <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">{total} items</span>
+          <div className="flex items-center gap-2">
+            <AdminMenuButton />
+            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-500">{total} items</span>
+          </div>
         </div>
 
         <div className="mb-4 grid gap-2 md:grid-cols-[1fr_auto] md:items-center">

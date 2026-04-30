@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
-import { AdminLayout } from "@/components/Layout";
+import { AdminLayout, AdminMenuButton } from "@/components/Layout";
 import { client } from "@/lib/api";
 import { Hostel } from "@/lib/types";
 
@@ -76,9 +76,12 @@ export default function AdminHostelsPage() {
   return (
     <AdminLayout>
       <div className="pt-4 px-4 md:px-6 lg:px-8 space-y-4">
-        <div>
-          <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Hostels</h1>
-          <p className="text-sm text-slate-500">Manage hostel options used by delivery orders on campus.</p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-black text-[#1F2937] md:text-2xl">Hostels</h1>
+            <p className="text-sm text-slate-500">Manage hostel options used by delivery orders on campus.</p>
+          </div>
+          <AdminMenuButton />
         </div>
 
         {error ? <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p> : null}
