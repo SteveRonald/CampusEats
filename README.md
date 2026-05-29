@@ -1,11 +1,6 @@
 # CampusEats
 
-CampusEats is a marketplace-first campus food ordering platform for Kenyan university students. This workspace follows the requested production-ready structure:
-
-- `frontend/` - Next.js student/customers, vendor, and admin interfaces
-- `backend/` - Express REST API for marketplace, orders, vendors, payments, and webhook handling
-- `database/` - PostgreSQL SQL
-- `shared/` - shared contracts and product constants
+CampusEats is a marketplace-first campus food ordering platform for Kenyan university students.
 
 ## Stack
 
